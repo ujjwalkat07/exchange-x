@@ -50,7 +50,7 @@ const orderSchema = new Schema<IOrder>(
     },
     orderType: {
       type: String,
-      enum: ["Market"],
+      enum: ["Market", "Limit"],
       required: true,
     },
     positionStatus: {

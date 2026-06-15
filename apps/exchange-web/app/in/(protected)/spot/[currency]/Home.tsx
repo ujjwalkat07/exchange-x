@@ -7,9 +7,10 @@ import Ticker from "@/components/dashboard/Ticker";
 import WalletContainer from "@/components/dashboard/WalletContainer";
 import { useDispatch } from "react-redux";
 import { useEffect, useState } from "react";
-import OrderHistory from "@/components/dashboard/TradeContainer/OrderHistory";
-import OpenOrder from "@/components/dashboard/TradeContainer/OpenOrder";
-import TradeHistory from "@/components/dashboard/TradeContainer/TradeHistory";
+import OrderHistory from "@/components/dashboard/TradeContainer/order-history";
+import OpenOrder from "@/components/dashboard/TradeContainer/positions";
+import RestingOrders from "@/components/dashboard/TradeContainer/open-orders";
+import Holding from "@/components/dashboard/TradeContainer/Holding";
 import { useParams } from "next/navigation";
 import { changeSocketStatus } from "@/store/features/socketSlice";
 import { IoIosCloseCircle } from "react-icons/io";
@@ -18,8 +19,8 @@ export default function Home() {
   const [messages, setMessages] = useState<string | null>(null);
   const params = useParams();
   const [activeTab, setActiveTab] = useState<
-    "OPEN_ORDER" | "ORDER_HISTORY" | "TRADE_HISTORY" | "HOLDING"
-  >("OPEN_ORDER");
+    "POSITION" | "OPENORDER" | "ORDER_HISTORY" | "BALANCE_HISTORY"
+  >("POSITION");
 
   const dispatch = useDispatch();
 
@@ -59,77 +60,84 @@ export default function Home() {
 
   return (
     <>
-      <div className="flex flex-col lg:flex-row lg:items-center justify-center w-full mt-5 px-1 gap-3">
-        <Ticker token={String(params.currency)} />
-        <div className="shrink-0">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between w-full mt-4 px-4 gap-4 bg-[#0b0e11] py-3 rounded-md border border-slate-800">
+        <div className="flex-grow w-full lg:w-auto">
+          <Ticker token={String(params.currency)} />
+        </div>
+        <div className="shrink-0 w-full lg:w-auto flex justify-center lg:justify-end">
           <WalletContainer />
         </div>
       </div>
-      <hr className="text-gray-700 mt-2" />
-      <div className="flex flex-col xl:flex-row xl:justify-around">
-        <div className="flex flex-col mx-3 xl:mx-3">
-          <div className="lg:block hidden">
+      <hr className="border-slate-800 mt-2" />
+      <div className="flex flex-col lg:flex-row gap-4 mt-4 px-4">
+        {/* Left Sidebar on desktop, stacked below chart/order-form on mobile/tablet */}
+        <div className="w-full lg:w-72 shrink-0 flex flex-col md:flex-row lg:flex-col gap-4 order-3 lg:order-1">
+          <div className="flex-1 w-full">
             <Orderbook />
           </div>
-          <hr className="text-gray-700 mt-2" />
-          <div className="lg:block hidden">
+          <div className="flex-1 w-full">
             <LivePrices />
           </div>
         </div>
 
-        <div className="hidden xl:block border-r border-r-gray-600 h-202"></div>
-        <div className="mx-2 flex-1 min-w-0">
-          <div className="flex flex-col lg:flex-row lg:justify-around lg:gap-3">
-            {/* Chart — full width on mobile, min 50% on lg+ */}
-            <div className="w-full lg:min-w-[50%] flex justify-center">
-              <TradingViewWidget symbol={"btcusdt"} />
+        {/* Main Content (Chart, Order Block, Tabs) */}
+        <div className="flex-1 min-w-0 flex flex-col gap-4 order-1 lg:order-2">
+          <div className="flex flex-col md:flex-row gap-4 items-stretch">
+            {/* Chart Container */}
+            <div className="flex-grow min-w-0 h-[480px] bg-[#0b0e11] rounded-sm border border-slate-800">
+              <TradingViewWidget symbol={String(params.currency)} />
             </div>
 
-            <div className="hidden lg:block border-r border-r-gray-600 h-106"></div>
-
-            <div className="w-full lg:w-[50%] lg:min-w-0 lg:max-w-full">
+            {/* Order Block Container */}
+            <div className="w-full md:w-80 shrink-0">
               <OrderBlock />
             </div>
           </div>
 
-          <hr className="text-gray-700 mt-2" />
-
-          <div className="w-full text-white mt-2 bg-[#0b0e11] rounded-sm p-5 mb-5 min-h-92">
-            <div className="flex flex-wrap gap-4 text-sm font-semibold text-gray-400">
+          <div className="w-full text-white bg-[#0b0e11] rounded-sm p-5 min-h-92 border border-slate-800">
+            <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-400 pb-3 border-b border-slate-900/60 mb-4">
               <button
-                onClick={() => setActiveTab("OPEN_ORDER")}
-                className={activeTab === "OPEN_ORDER" ? "text-white" : ""}
+                onClick={() => setActiveTab("POSITION")}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "POSITION" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
-                <p className="cursor-pointer">Open Order</p>
+                <span className="cursor-pointer">position</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("OPENORDER")}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "OPENORDER" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
+              >
+                <span className="cursor-pointer">openorder</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("ORDER_HISTORY")}
-                className={activeTab === "ORDER_HISTORY" ? "text-white" : ""}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "ORDER_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
-                <p className="cursor-pointer">Order History</p>
+                <span className="cursor-pointer">orderhistory</span>
               </button>
 
               <button
-                onClick={() => setActiveTab("TRADE_HISTORY")}
-                className={activeTab === "TRADE_HISTORY" ? "text-white cursor-pointer" : ""}
+                onClick={() => setActiveTab("BALANCE_HISTORY")}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "BALANCE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
-                <p className="cursor-pointer">Trade History</p>
-              </button>
-
-              <button
-                onClick={() => setActiveTab("HOLDING")}
-                className={activeTab === "HOLDING" ? "text-white cursor-pointer" : ""}
-              >
-                <p className="cursor-pointer">Holding</p>
+                <span className="cursor-pointer">balance history</span>
               </button>
             </div>
 
-            {activeTab === "OPEN_ORDER" && <OpenOrder />}
+            {activeTab === "POSITION" && <OpenOrder />}
+            {activeTab === "OPENORDER" && <RestingOrders />}
             {activeTab === "ORDER_HISTORY" && <OrderHistory />}
-            {activeTab === "TRADE_HISTORY" && <TradeHistory />}
+            {activeTab === "BALANCE_HISTORY" && <Holding />}
           </div>
-        </div>
       </div>
 
       {messages && (
@@ -143,6 +151,7 @@ export default function Home() {
           </button>
         </div>
       )}
+      </div>
     </>
   );
 }

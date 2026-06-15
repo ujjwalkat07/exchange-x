@@ -59,7 +59,7 @@ const LivePrices = () => {
     : sortedPrices;
 
   return (
-    <div className="py-4 text-white mt-2 rounded-sm bg-[#0b0e11] w-full xl:w-68">
+    <div className="py-4 text-white mt-2 rounded-sm bg-[#0b0e11] w-full">
       <div className="flex items-center justify-between mx-3 mb-2">
         <h1 className="text-sm font-medium text-slate-50">Asset Prices</h1>
         <span

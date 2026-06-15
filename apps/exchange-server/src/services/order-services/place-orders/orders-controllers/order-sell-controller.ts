@@ -24,6 +24,7 @@ export const sellOrder = async (
       orderSide,
       positionStatus,
       orderQuantity,
+      entryPrice,
     }: ISellRequestBody = req.body;
     // const asset = req.params.asset;
     const userId = req.user?._id;
@@ -34,16 +35,28 @@ export const sellOrder = async (
         "User not authenticated",
       );
     }
-    const livePrice = await getLatestPrice(currencyPair);
 
-    if (!livePrice) {
-      throw new ApiErrorHandling(
-        HttpCodes.SERVICE_UNAVAILABLE,
-        "Live mark price unavailable. Please retry in a moment",
-      );
+    let price: number;
+    if (orderType === "Limit") {
+      if (!entryPrice || Number(entryPrice) <= 0) {
+        throw new ApiErrorHandling(
+          HttpCodes.BAD_REQUEST,
+          "Limit price (entryPrice) is required and must be greater than 0",
+        );
+      }
+      price = Number(entryPrice);
+    } else {
+      const livePrice = await getLatestPrice(currencyPair);
+      if (!livePrice) {
+        throw new ApiErrorHandling(
+          HttpCodes.SERVICE_UNAVAILABLE,
+          "Live mark price unavailable. Please retry in a moment",
+        );
+      }
+      price = livePrice;
     }
 
-    const totalAmount = orderQuantity * livePrice;
+    const totalAmount = orderQuantity * price;
 
     const redisKey = `wallet:${userId}`;
     const wallet = await Redis.getClient().hGet(
@@ -84,7 +97,7 @@ export const sellOrder = async (
       orderSide,
       currencyPair: currencyPair,
       orderType,
-      entryPrice: livePrice.toString(),
+      entryPrice: price.toString(),
       positionStatus,
       orderAmount: totalAmount.toString(),
       orderQuantity: orderQuantity.toString(),

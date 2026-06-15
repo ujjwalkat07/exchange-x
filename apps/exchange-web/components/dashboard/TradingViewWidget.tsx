@@ -10,9 +10,18 @@ function TradingViewWidget({ symbol }: TradingViewWidgetProps) {
 
   useEffect(() => {
     if (!container.current) return;
-    const existingScript = container.current.querySelector("script");
-    if (existingScript) return;
 
+    // Clear previous elements (iframe, old scripts, widget div)
+    container.current.innerHTML = "";
+
+    // Recreate the target container div for TradingView widget
+    const widgetDiv = document.createElement("div");
+    widgetDiv.className = "tradingview-widget-container__widget";
+    widgetDiv.style.height = "100%";
+    widgetDiv.style.width = "100%";
+    container.current.appendChild(widgetDiv);
+
+    // Create and configure script tag
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
@@ -40,11 +49,12 @@ function TradingViewWidget({ symbol }: TradingViewWidgetProps) {
       withdateranges: false,
       compareSymbols: [],
       studies: [],
-      width: 680,
-      height: 420
+      width: "100%",
+      height: "100%"
     });
 
     container.current.appendChild(script);
+
     return () => {
       if (container.current) {
         container.current.innerHTML = "";
@@ -60,7 +70,7 @@ function TradingViewWidget({ symbol }: TradingViewWidgetProps) {
     >
       <div
         className="tradingview-widget-container__widget"
-        style={{ height: "calc(100% - 32px)", width: "100%" }}
+        style={{ height: "100%", width: "100%" }}
       />
     </div>
   );

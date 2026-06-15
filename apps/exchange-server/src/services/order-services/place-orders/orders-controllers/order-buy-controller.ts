@@ -24,6 +24,7 @@ export const buyOrder = async (
       orderType,
       positionStatus,
       orderAmount,
+      entryPrice,
     }: IBuyRequestBody = req.body;
 
     //fetch userid from middleware
@@ -36,16 +37,28 @@ export const buyOrder = async (
       );
     }
 
-    const livePrice = await getLatestPrice(currencyPair);
-    if (!livePrice) {
-      throw new ApiErrorHandling(
-        HttpCodes.SERVICE_UNAVAILABLE,
-        "Live mark price unavailable. Please retry in a moment",
-      );
+    let price: number;
+    if (orderType === "Limit") {
+      if (!entryPrice || Number(entryPrice) <= 0) {
+        throw new ApiErrorHandling(
+          HttpCodes.BAD_REQUEST,
+          "Limit price (entryPrice) is required and must be greater than 0",
+        );
+      }
+      price = Number(entryPrice);
+    } else {
+      const livePrice = await getLatestPrice(currencyPair);
+      if (!livePrice) {
+        throw new ApiErrorHandling(
+          HttpCodes.SERVICE_UNAVAILABLE,
+          "Live mark price unavailable. Please retry in a moment",
+        );
+      }
+      price = livePrice;
     }
 
     //calculate qty so that it can use as globally
-    const orderQuantity = orderAmount / livePrice;
+    const orderQuantity = orderAmount / price;
 
     const redisKey = `wallet:${userId}`;
 
@@ -85,7 +98,7 @@ export const buyOrder = async (
       orderSide,
       currencyPair: currencyPair,
       orderType,
-      entryPrice: livePrice.toString(),
+      entryPrice: price.toString(),
       positionStatus,
       orderAmount: orderAmount.toString(),
       orderQuantity: orderQuantity.toString(),

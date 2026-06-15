@@ -8,7 +8,7 @@ import { IOrder } from "../services/order-services/place-orders/order-model";
 // }
 export const orderMatchingEngine = async (message: IOrder) => {
   // for buy order
-  const { user, currencyPair, orderSide, orderQuantity, orderId, entryPrice } =
+  const { user, currencyPair, orderSide, orderQuantity, orderId, entryPrice, orderType } =
     message;
   const id = user;
   let userQty = Number(orderQuantity);
@@ -39,12 +39,14 @@ export const orderMatchingEngine = async (message: IOrder) => {
 
     const bestPrice = Number(score);
 
-    // Price check
-    if (
-      (orderSide === "BUY" && bestPrice > Number(entryPrice)) ||
-      (orderSide === "SELL" && bestPrice < Number(entryPrice))
-    ) {
-      break;
+    // Price check - only restrict limit orders. Market orders match against any available price.
+    if (orderType === "Limit") {
+      if (
+        (orderSide === "BUY" && bestPrice > Number(entryPrice)) ||
+        (orderSide === "SELL" && bestPrice < Number(entryPrice))
+      ) {
+        break;
+      }
     }
     const tradedQuantity = Math.min(userQty, counterQty);
 
@@ -78,8 +80,12 @@ export const orderMatchingEngine = async (message: IOrder) => {
   }
   //only saved for resting order here
   if (userQty > 0) {
+    let restingPrice = Number(entryPrice);
+    if (orderType === "Market" && trades.length > 0) {
+      restingPrice = trades[trades.length - 1].executionPrice;
+    }
     await Redis.getClient().zAdd(userBook, {
-      score: entryPrice,
+      score: restingPrice,
       value: `${id}|${userOrderId}|${userQty}`,
     });
   }

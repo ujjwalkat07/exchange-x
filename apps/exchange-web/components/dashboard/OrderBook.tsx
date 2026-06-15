@@ -56,7 +56,7 @@ const Orderbook = () => {
 
   return (
     <>
-      <div className="px-2 py-5 h-max text-white bg-[#0b0e11] mt-2 rounded-sm w-68">
+      <div className="px-2 py-5 h-max text-white bg-[#0b0e11] mt-2 rounded-sm w-full">
         <h1 className="mx-3">Orderbook</h1>
         <hr className="text-gray-700 mt-2 mx-2" />
 

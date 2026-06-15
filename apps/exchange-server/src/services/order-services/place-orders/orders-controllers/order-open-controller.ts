@@ -4,9 +4,9 @@ import {
   AuthRequest,
   HttpCodes,
   Order,
-  Redis,
   Response,
 } from "../orders-controllers/export";
+import { orderHistory } from "../../order-history/order-history-model";
 
 export const openPosition = async (
   req: AuthRequest,
@@ -18,24 +18,7 @@ export const openPosition = async (
       throw new ApiErrorHandling(HttpCodes.UNAUTHORIZED, "Unauthorized");
     }
 
-    const redis = Redis.getClient();
-
-    const orderIds = await redis.sMembers(
-      `openOrders:userId:${userId}`
-    );
-    // console.log(orderIds[0])
-    if (orderIds.length > 0 || orderIds[0] != null) {
-      const result = await Promise.all(
-        orderIds.map((Id) => {
-          return redis.hGetAll(`orderdetail:orderID:${Id}`);
-        }),
-      );
-
-      return res
-        .status(HttpCodes.OK)
-        .json(new ApiResponse(HttpCodes.OK, result, "Live trades from redis"));
-    }
-
+    // Find all open orders for this user
     const orders = await Order.find({
       user: userId,
       positionStatus: "Open",
@@ -45,36 +28,25 @@ export const openPosition = async (
       })
       .lean();
 
-    //push to Redis
-    const pipeline = redis.multi();
-
-    orders.forEach(async (order) => {
-      const orderId = order.orderId;
-      await Promise.all([
-        pipeline.hSet(`orderdetail:orderID:${orderId}`, {
-          orderId: order.orderId,
-          user: order.user.toString(),
-          currencyPair: order.currencyPair,
-          orderSide: order.orderSide,
-          orderType: order.orderType,
-          entryPrice: order.entryPrice.toString(),
-          orderAmount: order.orderAmount.toString(),
-          orderQuantity: order.orderQuantity.toString(),
-          positionStatus: order.positionStatus,
-        }),
-        pipeline.expire(`orderdetail:orderID:${orderId}`, 50000),
-        pipeline.sAdd(`openOrders:userId:${order.user}`, orderId),
-        pipeline.expire(`openOrders:userId:${order.user}`, 50000),
-      ]);
-    });
-
-    await pipeline.exec();
+    // Filter to keep ONLY orders that have matched trades (positions)
+    const matchedOrders = [];
+    for (const order of orders) {
+      const hasTrades = await orderHistory.exists({
+        $or: [
+          { buyerOrderId: order.orderId },
+          { sellerOrderId: order.orderId },
+        ],
+      });
+      if (hasTrades) {
+        matchedOrders.push(order);
+      }
+    }
 
     return res
       .status(HttpCodes.OK)
-      .json(new ApiResponse(HttpCodes.OK, orders, "Live from DB trades"));
+      .json(new ApiResponse(HttpCodes.OK, matchedOrders, "Open positions (matched orders)"));
   } catch (error) {
-    console.log(error)
+    console.error("openPosition error:", error);
     if (error instanceof ApiErrorHandling) {
       return res
         .status(error.statusCode)

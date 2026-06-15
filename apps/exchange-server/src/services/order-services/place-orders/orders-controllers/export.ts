@@ -1,6 +1,8 @@
 export { openPosition } from "./order-open-controller";
 export { sellOrder } from "./order-sell-controller";
 export { buyOrder } from "./order-buy-controller";
+export { cancelOrder } from "./order-cancel-controller";
+export { getRestingOrders } from "./order-resting-controller";
 
 export { Redis } from "../../../../config/redis-config/redis-connection";
 export { Kafka } from "../../../../config/kafka-config/kafka-producer"
@@ -17,7 +19,7 @@ export { getLatestPrice } from "../../../../websockets/price-fetch";
 
 export interface IBuyRequestBody {
   currencyPair: string;
-  orderType: "market";
+  orderType: "Market" | "Limit";
   entryPrice?: number;
   positionStatus: "open" | "closed";
   orderAmount: number;

@@ -43,7 +43,12 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
 
     // Fetch both wallets in ONE DB query
     const wallets = await Wallet.find(
-      { $or: [{ asset: asset1, user: userid }, { asset: asset2, user: userid }] },
+      {
+        $or: [
+          { asset: asset1 as string, user: userid },
+          { asset: asset2 as string, user: userid },
+        ],
+      },
       { asset: 1, balance: 1 }
     ).lean();
 
