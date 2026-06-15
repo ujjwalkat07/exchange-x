@@ -23,7 +23,7 @@ const LivePrices = () => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const ws = new window.WebSocket("wss://fstream.binance.com/stream?streams=!markPrice@arr");
+    const ws = new window.WebSocket("wss://fstream.binance.com/market/stream?streams=!markPrice@arr");
 
     ws.onopen = () => setConnected(true);
 

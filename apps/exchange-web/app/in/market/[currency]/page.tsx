@@ -82,7 +82,7 @@ export default function MarketPage() {
 
     // WebSocket for live prices
     useEffect(() => {
-        const ws = new window.WebSocket("wss://fstream.binance.com/stream?streams=!markPrice@arr");
+        const ws = new window.WebSocket("wss://fstream.binance.com/market/stream?streams=!markPrice@arr");
 
         ws.onopen = () => setConnected(true);
 
@@ -113,7 +113,7 @@ export default function MarketPage() {
 
     useEffect(() => {
         const ws = new window.WebSocket(
-            `wss://fstream.binance.com/stream?streams=${String(token.currency).toLowerCase()}@ticker`
+            `wss://fstream.binance.com/market/stream?streams=${String(token.currency).toLowerCase()}@ticker`
         );
         ws.onmessage = (event: MessageEvent) => {
             try {
