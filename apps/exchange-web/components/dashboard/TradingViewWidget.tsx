@@ -10,18 +10,9 @@ function TradingViewWidget({ symbol }: TradingViewWidgetProps) {
 
   useEffect(() => {
     if (!container.current) return;
+    const existingScript = container.current.querySelector("script");
+    if (existingScript) return;
 
-    // Clear previous elements (iframe, old scripts, widget div)
-    container.current.innerHTML = "";
-
-    // Recreate the target container div for TradingView widget
-    const widgetDiv = document.createElement("div");
-    widgetDiv.className = "tradingview-widget-container__widget";
-    widgetDiv.style.height = "100%";
-    widgetDiv.style.width = "100%";
-    container.current.appendChild(widgetDiv);
-
-    // Create and configure script tag
     const script = document.createElement("script");
     script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
