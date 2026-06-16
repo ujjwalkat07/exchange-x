@@ -3,12 +3,12 @@ import {
   ApiResponse,
   AuthRequest,
   HttpCodes,
-  Order,
+  Redis,
   Response,
-} from "../orders-controllers/export";
-import { orderHistory } from "../../order-history/order-history-model";
+  Order,
+} from "./export";
 
-export const openPosition = async (
+export const getOpenOrders = async (
   req: AuthRequest,
   res: Response,
 ): Promise<Response> => {
@@ -18,7 +18,30 @@ export const openPosition = async (
       throw new ApiErrorHandling(HttpCodes.UNAUTHORIZED, "Unauthorized");
     }
 
-    // Find all open orders for this user
+    const redis = Redis.getClient();
+
+    // Fetch open order IDs from Redis Set for this user
+    const orderIds = await redis.sMembers(`openOrders:userId:${userId}`);
+
+    if (orderIds && orderIds.length > 0 && orderIds[0] != null) {
+      // Retrieve order details for each ID
+      const restingOrders = await Promise.all(
+        orderIds.map(async (id) => {
+          return await redis.hGetAll(`orderdetail:orderID:${id}`);
+        }),
+      );
+
+      // Filter out any empty hashes just in case of race conditions
+      const validOrders = restingOrders.filter((order) => order && order.orderId);
+
+      if (validOrders.length > 0) {
+        return res
+          .status(HttpCodes.OK)
+          .json(new ApiResponse(HttpCodes.OK, validOrders, "Resting open orders directly from Redis"));
+      }
+    }
+
+    // If Redis has no open orders for the user, query MongoDB
     const orders = await Order.find({
       user: userId,
       positionStatus: "Open",
@@ -28,25 +51,36 @@ export const openPosition = async (
       })
       .lean();
 
-    // Filter to keep ONLY orders that have matched trades (positions)
-    const matchedOrders = [];
-    for (const order of orders) {
-      const hasTrades = await orderHistory.exists({
-        $or: [
-          { buyerOrderId: order.orderId },
-          { sellerOrderId: order.orderId },
-        ],
-      });
-      if (hasTrades) {
-        matchedOrders.push(order);
+    // If open orders are found in MongoDB, populate the Redis cache
+    if (orders.length > 0) {
+      const pipeline = redis.multi();
+
+      for (const order of orders) {
+        const orderId = order.orderId;
+        pipeline.hSet(`orderdetail:orderID:${orderId}`, {
+          orderId: order.orderId,
+          userId: order.user.toString(),
+          currencyPair: order.currencyPair,
+          orderSide: order.orderSide,
+          orderType: order.orderType,
+          entryPrice: order.entryPrice.toString(),
+          orderAmount: order.orderAmount.toString(),
+          orderQuantity: order.orderQuantity.toString(),
+          positionStatus: order.positionStatus,
+        });
+        pipeline.expire(`orderdetail:orderID:${orderId}`, 50000);
+        pipeline.sAdd(`openOrders:userId:${order.user}`, orderId);
+        pipeline.expire(`openOrders:userId:${order.user}`, 50000);
       }
+
+      await pipeline.exec();
     }
 
     return res
       .status(HttpCodes.OK)
-      .json(new ApiResponse(HttpCodes.OK, matchedOrders, "Open positions (matched orders)"));
+      .json(new ApiResponse(HttpCodes.OK, orders, "Open orders retrieved from Database"));
   } catch (error) {
-    console.error("openPosition error:", error);
+    console.error("getOpenOrders error:", error);
     if (error instanceof ApiErrorHandling) {
       return res
         .status(error.statusCode)

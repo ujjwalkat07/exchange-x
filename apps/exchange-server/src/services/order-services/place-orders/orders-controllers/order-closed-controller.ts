@@ -6,7 +6,7 @@ import {
   Order,
   Redis,
   Response,
-} from "../orders-controllers/export";
+} from "./export";
 
 export const closePosition = async (
   req: AuthRequest,
@@ -23,12 +23,11 @@ export const closePosition = async (
     const orderIds = await redis.sMembers(
       `closeOrders:userId:${userId}`
     );
-// console.log(orderIds)
-    if (orderIds[0] != null) {
 
+    if (orderIds && orderIds.length > 0 && orderIds[0] != null) {
       const result = await Promise.all(
-        orderIds.map(async (Id) => {
-          return await redis.hGetAll(`orderdetail:orderID:${Id}`);
+        orderIds.map(async (id) => {
+          return await redis.hGetAll(`orderdetail:orderID:${id}`);
         }),
       );
       return res
@@ -45,28 +44,26 @@ export const closePosition = async (
       })
       .lean();
 
-    //push to Redis
+    // push to Redis using synchronous pipeline building
     const pipeline = redis.multi();
 
-    orders.forEach(async (order) => {
+    for (const order of orders) {
       const orderId = order.orderId;
-      await Promise.all([
-        pipeline.hSet(`orderdetail:orderID:${orderId}`, {
-          orderId: order.orderId,
-          userId: order.user.toString(),
-          currencyPair: order.currencyPair,
-          orderSide: order.orderSide,
-          orderType: order.orderType,
-          entryPrice: order.entryPrice.toString(),
-          orderAmount: order.orderAmount.toString(),
-          orderQuantity: order.orderQuantity.toString(),
-          positionStatus: order.positionStatus,
-        }),
-        pipeline.expire(`orderdetail:orderID:${orderId}`, 50000),
-        pipeline.sAdd(`closeOrders:userId:${order.user}`, orderId),
-        pipeline.expire(`closeOrders:userId:${order.user}`, 50000),
-      ]);
-    });
+      pipeline.hSet(`orderdetail:orderID:${orderId}`, {
+        orderId: order.orderId,
+        userId: order.user.toString(),
+        currencyPair: order.currencyPair,
+        orderSide: order.orderSide,
+        orderType: order.orderType,
+        entryPrice: order.entryPrice.toString(),
+        orderAmount: order.orderAmount.toString(),
+        orderQuantity: order.orderQuantity.toString(),
+        positionStatus: order.positionStatus,
+      });
+      pipeline.expire(`orderdetail:orderID:${orderId}`, 50000);
+      pipeline.sAdd(`closeOrders:userId:${order.user}`, orderId);
+      pipeline.expire(`closeOrders:userId:${order.user}`, 50000);
+    }
 
     await pipeline.exec();
 
@@ -74,6 +71,7 @@ export const closePosition = async (
       .status(HttpCodes.OK)
       .json(new ApiResponse(HttpCodes.OK, orders, "Live from DB trades"));
   } catch (error) {
+    console.error("closePosition error:", error);
     if (error instanceof ApiErrorHandling) {
       return res
         .status(error.statusCode)

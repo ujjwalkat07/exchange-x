@@ -5,9 +5,9 @@ import {
   HttpCodes,
   Response,
 } from "../place-orders/orders-controllers/export";
-import { orderHistory } from "./order-history-model";
+import { orderHistory } from "./trade-history-model";
 
-export const orderHistoryController = async (
+export const tradeHistoryController = async (
   req: AuthRequest,
   res: Response
 ): Promise<Response> => {
@@ -29,11 +29,20 @@ export const orderHistoryController = async (
         ],
       }).lean();
 
+    const formattedTrades = result.map((trade) => {
+      const isBuyer = trade.buyerUserId.toString() === userId.toString();
+      return {
+        ...trade,
+        orderSide: isBuyer ? "BUY" : "SELL",
+        orderId: isBuyer ? trade.buyerOrderId : trade.sellerOrderId,
+      };
+    });
+
     return res.status(HttpCodes.OK).json(
       new ApiResponse(
         HttpCodes.OK,
-        result,
-        "Order history fetched successfully"
+        formattedTrades,
+        "Trade history fetched successfully"
       )
     );
   } catch (error) {

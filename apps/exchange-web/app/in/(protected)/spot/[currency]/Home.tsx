@@ -11,6 +11,7 @@ import OrderHistory from "@/components/dashboard/TradeContainer/order-history";
 import OpenOrder from "@/components/dashboard/TradeContainer/positions";
 import RestingOrders from "@/components/dashboard/TradeContainer/open-orders";
 import Holding from "@/components/dashboard/TradeContainer/Holding";
+import TradeHistory from "@/components/dashboard/TradeContainer/trade-history";
 import { useParams } from "next/navigation";
 import { changeSocketStatus } from "@/store/features/socketSlice";
 import { IoIosCloseCircle } from "react-icons/io";
@@ -19,7 +20,7 @@ export default function Home() {
   const [messages, setMessages] = useState<string | null>(null);
   const params = useParams();
   const [activeTab, setActiveTab] = useState<
-    "POSITION" | "OPENORDER" | "ORDER_HISTORY" | "BALANCE_HISTORY"
+    "POSITION" | "OPENORDER" | "ORDER_HISTORY" | "TRADE_HISTORY" | "BALANCE_HISTORY"
   >("POSITION");
 
   const dispatch = useDispatch();
@@ -120,7 +121,16 @@ export default function Home() {
                   activeTab === "ORDER_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
                 }`}
               >
-                <span className="cursor-pointer">orderhistory</span>
+                <span className="cursor-pointer">order history</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("TRADE_HISTORY")}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "TRADE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
+              >
+                <span className="cursor-pointer">trade history</span>
               </button>
 
               <button
@@ -136,6 +146,7 @@ export default function Home() {
             {activeTab === "POSITION" && <OpenOrder />}
             {activeTab === "OPENORDER" && <RestingOrders />}
             {activeTab === "ORDER_HISTORY" && <OrderHistory />}
+            {activeTab === "TRADE_HISTORY" && <TradeHistory />}
             {activeTab === "BALANCE_HISTORY" && <Holding />}
           </div>
       </div>

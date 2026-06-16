@@ -14,8 +14,9 @@ export const orderMatchingEngine = async (message: IOrder) => {
   let userQty = Number(orderQuantity);
   const userOrderId = orderId;
 
-  const buyBook = `orderbook:${currencyPair}:BUY`;
-  const sellBook = `orderbook:${currencyPair}:SELL`;
+  const currencyPairUpper = currencyPair.toUpperCase();
+  const buyBook = `orderbook:${currencyPairUpper}:BUY`;
+  const sellBook = `orderbook:${currencyPairUpper}:SELL`;
 
   const userBook = orderSide === "BUY" ? buyBook : sellBook;
   const oppositeBook = orderSide === "BUY" ? sellBook : buyBook;
@@ -65,7 +66,7 @@ export const orderMatchingEngine = async (message: IOrder) => {
     }
 
     const trade = {
-      currencyPair,
+      currencyPair: currencyPairUpper,
       buyerUserId: orderSide === "BUY" ? id : counterUserId,
       sellerUserId: orderSide === "SELL" ? id : counterUserId,
       buyerOrderId: orderSide === "BUY" ? userOrderId : counterOrderId,

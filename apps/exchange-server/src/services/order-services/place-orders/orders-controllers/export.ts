@@ -1,8 +1,8 @@
-export { openPosition } from "./order-open-controller";
-export { sellOrder } from "./order-sell-controller";
-export { buyOrder } from "./order-buy-controller";
+export { openPosition } from "./order-filled-controller";
+export { buyOrder, sellOrder } from "./order-place-controller";
 export { cancelOrder } from "./order-cancel-controller";
-export { getRestingOrders } from "./order-resting-controller";
+export { getOpenOrders } from "./order-open-controller";
+export { closePosition } from "./order-closed-controller";
 
 export { Redis } from "../../../../config/redis-config/redis-connection";
 export { Kafka } from "../../../../config/kafka-config/kafka-producer"

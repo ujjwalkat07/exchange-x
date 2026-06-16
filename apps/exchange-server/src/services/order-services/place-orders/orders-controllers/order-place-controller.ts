@@ -3,6 +3,7 @@ import {
   AuthRequest,
   HttpCodes,
   IBuyRequestBody,
+  ISellRequestBody,
   Response,
   Redis,
   ApiResponse,
@@ -12,30 +13,26 @@ import {
 } from "./export";
 import { v4 as uuidv4 } from "uuid";
 
-export const buyOrder = async (
+const createOrder = async (
   req: AuthRequest,
   res: Response,
+  orderSide: "BUY" | "SELL"
 ): Promise<Response> => {
   try {
     const uuid = uuidv4();
+    const userId = req.user?._id;
+    if (!userId) {
+      throw new ApiErrorHandling(HttpCodes.UNAUTHORIZED, "User not authenticated");
+    }
+
     const {
       currencyPair,
-      orderSide,
       orderType,
       positionStatus,
-      orderAmount,
       entryPrice,
-    }: IBuyRequestBody = req.body;
+    } = req.body;
 
-    //fetch userid from middleware
-    const userId = req.user?._id;
-
-    if (!userId) {
-      throw new ApiErrorHandling(
-        HttpCodes.UNAUTHORIZED,
-        "User not authenticated",
-      );
-    }
+    const currencyPairUpper = String(currencyPair).toUpperCase();
 
     let price: number;
     if (orderType === "Limit") {
@@ -47,7 +44,7 @@ export const buyOrder = async (
       }
       price = Number(entryPrice);
     } else {
-      const livePrice = await getLatestPrice(currencyPair);
+      const livePrice = await getLatestPrice(currencyPairUpper);
       if (!livePrice) {
         throw new ApiErrorHandling(
           HttpCodes.SERVICE_UNAVAILABLE,
@@ -57,20 +54,39 @@ export const buyOrder = async (
       price = livePrice;
     }
 
-    //calculate qty so that it can use as globally
-    const orderQuantity = orderAmount / price;
+    let orderAmount: number;
+    let orderQuantity: number;
+    let balanceToCheck: number;
+    let walletAsset: string;
+
+    if (orderSide === "BUY") {
+      const body = req.body as IBuyRequestBody;
+      orderAmount = Number(body.orderAmount);
+      if (!orderAmount || orderAmount <= 0) {
+        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "orderAmount is required and must be greater than 0");
+      }
+      orderQuantity = orderAmount / price;
+      balanceToCheck = orderAmount;
+      walletAsset = "USDT";
+    } else {
+      const body = req.body as ISellRequestBody;
+      orderQuantity = Number(body.orderQuantity);
+      if (!orderQuantity || orderQuantity <= 0) {
+        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "orderQuantity is required and must be greater than 0");
+      }
+      orderAmount = orderQuantity * price;
+      balanceToCheck = orderQuantity;
+      walletAsset = currencyPairUpper.replace("USDT", "");
+    }
 
     const redisKey = `wallet:${userId}`;
-
-    //console.time("redis-get-wallet");
-    const wallet = await Redis.getClient().hGet(redisKey, "USDT");
-    //console.timeEnd("redis-get-wallet");
+    const wallet = await Redis.getClient().hGet(redisKey, walletAsset);
     let walletBalance = Number(wallet);
 
     if (walletBalance === 0) {
       const walletDB = await Wallet.findOne({
         user: userId,
-        asset: "USDT",
+        asset: walletAsset,
       }).lean();
 
       if (!walletDB) {
@@ -78,25 +94,23 @@ export const buyOrder = async (
       }
 
       walletBalance = Number(walletDB.balance);
-      //push cached wallet to redis
-
-      const field = "USDT";
       await Redis.getClient().hSet(redisKey, {
-        [field]: walletBalance,
+        [walletAsset]: walletBalance,
       });
     }
 
-    if (orderAmount > walletBalance) {
+    if (balanceToCheck > walletBalance) {
       throw new ApiErrorHandling(
         HttpCodes.BAD_REQUEST,
-        "Insufficient USDT balance",
+        orderSide === "BUY" ? "Insufficient USDT balance" : "Insufficient Token balance",
       );
     }
-    const buyOrder = {
+
+    const placedOrder = {
       user: userId.toString(),
       orderId: uuid,
       orderSide,
-      currencyPair: currencyPair,
+      currencyPair: currencyPairUpper,
       orderType,
       entryPrice: price.toString(),
       positionStatus,
@@ -104,34 +118,34 @@ export const buyOrder = async (
       orderQuantity: orderQuantity.toString(),
     };
 
-    //push to kafka
-    //console.time("kafka-send");
+    // Push to Kafka
     Kafka.sendToConsumer(
-      currencyPair,
+      currencyPairUpper,
       "orders-detail",
-      JSON.stringify(buyOrder),
+      JSON.stringify(placedOrder),
     );
-    //console.timeEnd("kafka-send");
 
-    //push to redis
-    //console.time("redis-pipeline");
-
+    // Push to Redis
     const pipeline = Redis.getClient().multi();
-    pipeline.hSet(`orderdetail:orderID:${uuid}`, buyOrder);
-    pipeline.expire(`orderdetail:orderID:${uuid}`, 50000); //set expiry of 5000 seconds
+    pipeline.hSet(`orderdetail:orderID:${uuid}`, placedOrder);
+    pipeline.expire(`orderdetail:orderID:${uuid}`, 50000);
     pipeline.sAdd(`openOrders:userId:${userId}`, uuid);
     pipeline.expire(`openOrders:userId:${userId}`, 50000);
     await pipeline.exec();
-    //console.timeEnd("redis-pipeline");
+
     req.app.locals.emit("order", "Order Placed Successfully");
 
     return res
       .status(HttpCodes.OK)
       .json(
-        new ApiResponse(HttpCodes.OK, buyOrder, "Trade placed successfully"),
+        new ApiResponse(
+          HttpCodes.OK,
+          placedOrder,
+          orderSide === "BUY" ? "Trade placed successfully" : "Sell order executed"
+        )
       );
   } catch (error) {
-    console.log(error);
+    console.error(`Place ${orderSide} order error:`, error);
     if (error instanceof ApiErrorHandling) {
       return res
         .status(error.statusCode)
@@ -148,4 +162,18 @@ export const buyOrder = async (
         );
     }
   }
+};
+
+export const buyOrder = async (
+  req: AuthRequest,
+  res: Response
+): Promise<Response> => {
+  return createOrder(req, res, "BUY");
+};
+
+export const sellOrder = async (
+  req: AuthRequest,
+  res: Response
+): Promise<Response> => {
+  return createOrder(req, res, "SELL");
 };

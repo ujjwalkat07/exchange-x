@@ -22,7 +22,7 @@ const RestingOrders = () => {
   useEffect(() => {
     const fetchOpenPositions = async () => {
       try {
-        const res = await api.get("/api/order/restingOrders");
+        const res = await api.get("/api/order/openOrders");
         setData(res.data.data);
         console.log("data",res.data.data)
       } catch (err) {

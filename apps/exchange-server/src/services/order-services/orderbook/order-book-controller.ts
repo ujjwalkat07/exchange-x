@@ -11,7 +11,7 @@ import {
 
 export const buyOrderBook = async (req: AuthRequest, res: Response) => {
   try {
-    const param = req.params.currencyPair;
+    const param = String(req.params.currencyPair).toUpperCase();
     const book = await Redis.getClient().zRangeWithScores(
       `orderbook:${param}:BUY`,
       0,
@@ -39,7 +39,7 @@ export const buyOrderBook = async (req: AuthRequest, res: Response) => {
 
 export const sellOrderBook = async (req: AuthRequest, res: Response) => {
   try {
-    const param = req.params.currencyPair;
+    const param = String(req.params.currencyPair).toUpperCase();
     const book = await Redis.getClient().zRangeWithScores(
       `orderbook:${param}:SELL`,
       0,

@@ -1,4 +1,4 @@
-import express,{Express} from "express";
+import express, { Express } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -7,7 +7,7 @@ import { walletRoutes } from "./services/wallet-services/wallet-routes";
 import { initKafkaService } from "./services/kafka-services/kafka-initaliazation";
 import { orderRoutes } from "./services/order-services/place-orders/order-routes";
 import { redisInit } from "./config/redis-config/redis-initialisatio";
-import { orderHistoryRoutes } from "./services/order-services/order-history/order-history-routes";
+import { tradeHistoryRoutes } from "./services/order-services/order-history/trade-history-routes";
 import { config } from "./config/env-config/config";
 import { orderBookRoutes } from "./services/order-services/orderbook/order-book-route";
 import { createServer } from "http";
@@ -17,7 +17,7 @@ dotenv.config({
   path: "./.env",
 });
 
-const app:Express = express();
+const app: Express = express();
 const httpServer = createServer(app);
 const wss = new WebSocketServerInitializer(httpServer);
 
@@ -41,7 +41,7 @@ export const emitToClients = wss.emit;
 app.use("/api/auth", authRoutes);
 app.use("/api/wallet", walletRoutes);
 app.use("/api/order", orderRoutes);
-app.use("/api/order-history", orderHistoryRoutes);
+app.use("/api/trade-history", tradeHistoryRoutes);
 app.use("/api/order-book", orderBookRoutes);
 
 app.get("/", (_req, res) => {

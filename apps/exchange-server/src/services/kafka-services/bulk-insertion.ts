@@ -1,5 +1,5 @@
 import { Redis } from "../../config/redis-config/redis-connection";
-import { orderHistory } from "../order-services/order-history/order-history-model";
+import { orderHistory } from "../order-services/order-history/trade-history-model";
 import { IOrder, Order } from "../order-services/place-orders/order-model";
 import { orderMatchingEngine } from "../../matching-engine-algorithm/orders-matching-engine";
 import { Wallet } from "../wallet-services/wallet-model";
@@ -72,7 +72,7 @@ export const bulkInsertion = async (
 
     emit("wallet", "Wallet Update Successfully");
     //here we execute the engine in parallel
-    
+
     // matching engine start here
     const tradeResults = await Promise.all(
       batch.map((order) => orderMatchingEngine(order)),
