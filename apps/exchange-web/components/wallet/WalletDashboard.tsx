@@ -6,33 +6,54 @@ import { useEffect, useState } from 'react';
 import TradingViewTickerTape from './TradingViewTickerTape';
 import TradingViewMarketSummary from './TradingViewMarketSummary';
 import { WalletAsset } from '@/lib/types';
+import { RiLoader2Fill } from 'react-icons/ri';
 
 export default function WalletDashboard() {
   const [assets, setAssets] = useState<WalletAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [restoring, setRestoring] = useState(false);
+
+  const fetchWalletAssets = async () => {
+    try {
+      const res = await api.get('/api/wallet/getallwallets');
+      const data = res.data.data;
+      setAssets(data.wallets);
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        setError(err.response?.data?.message || 'Failed to load wallet assets');
+      } else {
+        setError('An unexpected error occurred');
+      }
+    }
+  };
 
   useEffect(() => {
-    const fetchWalletAssets = async () => {
+    const initFetch = async () => {
       setLoading(true);
       setError(null);
-      try {
-        const res = await api.get('/api/wallet/getallwallets');
-        const data = res.data.data;
-        setAssets(data.wallets);
-      } catch (err) {
-        if (axios.isAxiosError(err)) {
-          setError(err.response?.data?.message || 'Failed to load wallet assets');
-        } else {
-          setError('An unexpected error occurred');
-        }
-      } finally {
-        setLoading(false);
-      }
+      await fetchWalletAssets();
+      setLoading(false);
     };
-
-    fetchWalletAssets();
+    initFetch();
   }, []);
+
+  const handleRestoreBalance = async () => {
+    setRestoring(true);
+    try {
+      await api.patch('/api/wallet/updateuserbalance');
+      await fetchWalletAssets();
+      alert('USDT balance restored successfully!');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        alert(err.response?.data?.message || 'Failed to restore balance');
+      } else {
+        alert('Failed to restore balance');
+      }
+    } finally {
+      setRestoring(false);
+    }
+  };
 
   if (loading) {
     return <div className="min-h-screen bg-[#080810] text-white flex items-center justify-center">Loading wallet...</div>;
@@ -56,7 +77,23 @@ export default function WalletDashboard() {
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row gap-8">
           <div className="w-full lg:w-[70%]">
             <div className="border p-6 rounded-sm border-gray-700 h-full">
-              <h1 className="text-lg font-medium">Total Wallet Balance</h1>
+              <div className="flex justify-between items-center">
+                <h1 className="text-lg font-medium">Total Wallet Balance</h1>
+                <button
+                  onClick={handleRestoreBalance}
+                  disabled={restoring}
+                  className="px-4 py-2 text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-sm border border-emerald-500/30 transition-all flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {restoring ? (
+                    <>
+                      <RiLoader2Fill className="animate-spin text-sm" />
+                      Restoring...
+                    </>
+                  ) : (
+                    'Restore Balance'
+                  )}
+                </button>
+              </div>
               {firstAsset ? (
                 <>
                   <h2 className="text-2xl mt-4">{firstAsset.asset}</h2>

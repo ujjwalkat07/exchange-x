@@ -15,10 +15,7 @@ export default function ProtectedLayout({
   useLayoutEffect(() => {
     const verifyToken = async () => {
       try {
-        const res = await api.post("/api/auth/verify-token");
-        if (res.data.statusCode === 200) {
-          router.push("/in/spot/btcusdt");
-        }
+        await api.post("/api/auth/verify-token");
       } catch (error) {
         if (axios.isAxiosError(error)) {
           router.push("/in/auth/login");

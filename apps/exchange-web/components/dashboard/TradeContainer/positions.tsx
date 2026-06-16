@@ -151,7 +151,7 @@ const OpenOrder = () => {
                 {/* Side */}
                 <td className="py-3.5 font-semibold">
                   <span className={order.orderSide === "BUY" ? "text-emerald-400" : "text-red-400"}>
-                    {order.orderSide === "BUY" ? "Long" : "Short"}
+                    {order.orderSide === "BUY" ? "BUY" : "SELL"}
                   </span>
                 </td>
 
@@ -166,7 +166,7 @@ const OpenOrder = () => {
 
                 {/* Unrealized PnL */}
                 <td className={`py-3.5 font-bold ${pnlColorClass}`}>
-                  {pnlPrefix}{unrealizedPnL.toFixed(2)} <span className="text-[9px] font-normal text-slate-500">USD</span>
+                  {pnlPrefix}{unrealizedPnL.toFixed(2)} <span className="text-[9px] font-normal text-slate-500">USDT</span>
                 </td>
 
                 {/* Unrealized PnL % */}

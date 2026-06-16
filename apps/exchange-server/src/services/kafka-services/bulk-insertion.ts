@@ -161,6 +161,17 @@ export const bulkInsertion = async (
 
     if (tradeWalletOps.length > 0) {
       await Wallet.bulkWrite(tradeWalletOps, { ordered: false });
+
+      // Clear Redis wallet caches for all users involved in trades
+      const tradeWalletMulti = Redis.getClient().multi();
+      for (const trade of allTrades) {
+        tradeWalletMulti.del(`wallet:${trade.buyerUserId}`);
+        tradeWalletMulti.del(`wallet:${trade.sellerUserId}`);
+        tradeWalletMulti.del(`all:wallet:${trade.buyerUserId}`);
+        tradeWalletMulti.del(`all:wallet:${trade.sellerUserId}`);
+      }
+      await tradeWalletMulti.exec();
+      emit("wallet", "Wallet Update Successfully");
     }
     console.log(`Processed batch of ${batch.length} orders.`);
   } catch (error) {

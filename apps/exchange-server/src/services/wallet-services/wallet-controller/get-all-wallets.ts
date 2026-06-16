@@ -39,7 +39,6 @@ export const getAllWallets = async (req: AuthRequest, res: Response) => {
 
         await Redis.getClient().json.set(redisKey, "$", wallets as any);
         await Redis.getClient().expire(redisKey, 60 * 5);
-
         return res
             .status(HttpCodes.OK)
             .json(

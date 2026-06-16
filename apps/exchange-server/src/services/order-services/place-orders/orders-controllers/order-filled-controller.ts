@@ -26,7 +26,6 @@ export const openPosition = async (
         createdAt: -1,
       })
       .lean();
-    console.log(orders)
     const matchedOrders = [];
     for (const order of orders) {
       const hasTrades = await orderHistory.exists({
