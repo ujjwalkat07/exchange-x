@@ -64,12 +64,12 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
     }
 
     const balance1 = wallet1.balance;
-    const balance2 = wallet2?.balance;
+    const balance2 = wallet2?.balance ?? 0;
 
     // Store both balances in ONE redis call
     await Redis.getClient().hSet(redisKey, {
       [asset1 as string]: Number(balance1),
-      [asset2 as string]: Number(balance2) >= 0 ? Number(balance2) : NaN,
+      [asset2 as string]: Number(balance2),
     });
 
     return res

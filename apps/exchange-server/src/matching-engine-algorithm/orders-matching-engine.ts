@@ -80,11 +80,8 @@ export const orderMatchingEngine = async (message: IOrder) => {
     trades.push(trade);
   }
   //only saved for resting order here
-  if (userQty > 0) {
+  if (userQty > 0 && orderType !== "Market") {
     let restingPrice = Number(entryPrice);
-    if (orderType === "Market" && trades.length > 0) {
-      restingPrice = trades[trades.length - 1].executionPrice;
-    }
     await Redis.getClient().zAdd(userBook, {
       score: restingPrice,
       value: `${id}|${userOrderId}|${userQty}`,

@@ -82,64 +82,139 @@ export const bulkInsertion = async (
 
     const allTrades = tradeResults.flat();
 
-    if (allTrades.length === 0) {
-      processing = false;
-      return;
-    }
-    emit("order", "Order Executed Successfully");
+    // Query all involved orders in a single DB call
+    const batchOrderIds = batch.map((o) => o.orderId);
+    const tradeOrderIds = allTrades.flatMap((t) => [t.buyerOrderId, t.sellerOrderId]);
+    const involvedOrderIds = Array.from(new Set([...batchOrderIds, ...tradeOrderIds]));
 
-    const ordermulti = Redis.getClient().multi();
-    for (const order of allTrades) {
-      ordermulti.del(`openOrders:userId:${order.buyerUserId}`);
-      ordermulti.del(`openOrders:userId:${order.sellerUserId}`);
-      ordermulti.del(`orderdetail:orderID:${order.buyerOrderId}`);
-      ordermulti.del(`orderdetail:orderID:${order.sellerOrderId}`);
+    const involvedOrders = await Order.find({ orderId: { $in: involvedOrderIds } }).lean();
+    const ordersMap = new Map<string, any>();
+    for (const order of involvedOrders) {
+      ordersMap.set(order.orderId, order);
     }
-    await ordermulti.exec();
-    //push alltrades to orderHistory collection
-    await orderHistory.insertMany(allTrades);
 
-    //now after update order history we need to update order positionStatus in Order collection
+    // Track total traded quantity and amount per order
+    const orderStats = new Map<string, { tradedQty: number; tradedAmount: number }>();
+    for (const trade of allTrades) {
+      // Buyer
+      if (!orderStats.has(trade.buyerOrderId)) {
+        orderStats.set(trade.buyerOrderId, { tradedQty: 0, tradedAmount: 0 });
+      }
+      const buyerStat = orderStats.get(trade.buyerOrderId)!;
+      buyerStat.tradedQty += trade.tradedQuantity;
+      buyerStat.tradedAmount += trade.tradedQuantity * trade.executionPrice;
+
+      // Seller
+      if (!orderStats.has(trade.sellerOrderId)) {
+        orderStats.set(trade.sellerOrderId, { tradedQty: 0, tradedAmount: 0 });
+      }
+      const sellerStat = orderStats.get(trade.sellerOrderId)!;
+      sellerStat.tradedQty += trade.tradedQuantity;
+      sellerStat.tradedAmount += trade.tradedQuantity * trade.executionPrice;
+    }
+
     const orderStatusOps = [];
+    const tradeWalletOps = [];
+    const ordermulti = Redis.getClient().multi();
 
-    for (const trade of allTrades) {
-      const buyerOrder = await Order.findOne({ orderId: trade.buyerOrderId });
-      const sellerOrder = await Order.findOne({ orderId: trade.sellerOrderId });
+    // Now process all involved orders
+    for (const orderId of involvedOrderIds) {
+      const order = ordersMap.get(orderId);
+      if (!order) continue;
 
-      const buyerRemainingQty =
-        (buyerOrder?.orderQuantity ?? 0) - trade.tradedQuantity;
-      const sellerRemainingQty =
-        (sellerOrder?.orderQuantity ?? 0) - trade.tradedQuantity;
+      const stats = orderStats.get(orderId) || { tradedQty: 0, tradedAmount: 0 };
+      const totalTradedQty = stats.tradedQty;
+      const totalTradedAmount = stats.tradedAmount;
+      const avgPrice = totalTradedQty > 0 ? totalTradedAmount / totalTradedQty : 0;
+      const remainingQty = order.orderQuantity - totalTradedQty;
 
-      orderStatusOps.push(
-        {
-          updateOne: {
-            filter: { orderId: trade.buyerOrderId },
-            update: {
-              positionStatus: buyerRemainingQty <= 0 ? "Filled" : "Open",
-              ...(buyerRemainingQty > 0 ? { orderQuantity: buyerRemainingQty } : {}),
-              entryPrice: trade.executionPrice,
+      if (order.orderType === "Market") {
+        // Market Order
+        if (totalTradedQty > 0) {
+          // Partially or fully filled market order
+          orderStatusOps.push({
+            updateOne: {
+              filter: { orderId },
+              update: {
+                positionStatus: "Filled",
+                orderQuantity: totalTradedQty,
+                orderAmount: totalTradedAmount,
+                entryPrice: avgPrice,
+              },
             },
-          },
-        },
-        {
-          updateOne: {
-            filter: { orderId: trade.sellerOrderId },
-            update: {
-              positionStatus: sellerRemainingQty <= 0 ? "Filled" : "Open",
-              ...(sellerRemainingQty > 0 ? { orderQuantity: sellerRemainingQty } : {}),
-              entryPrice: trade.executionPrice,
+          });
+        } else {
+          // Unfilled market order
+          orderStatusOps.push({
+            updateOne: {
+              filter: { orderId },
+              update: {
+                positionStatus: "Cancelled",
+                orderQuantity: 0,
+                orderAmount: 0,
+                entryPrice: 0,
+              },
             },
-          },
-        },
-      );
+          });
+        }
+
+        // Refund unused balance for market order
+        if (order.orderSide === "BUY") {
+          const unusedAmount = order.orderAmount - totalTradedAmount;
+          if (unusedAmount > 0) {
+            tradeWalletOps.push({
+              updateOne: {
+                filter: { user: order.user, asset: "USDT" },
+                update: { $inc: { balance: unusedAmount } },
+                upsert: true,
+              },
+            });
+          }
+        } else {
+          const unusedQty = order.orderQuantity - totalTradedQty;
+          if (unusedQty > 0) {
+            tradeWalletOps.push({
+              updateOne: {
+                filter: { user: order.user, asset: order.currencyPair.toUpperCase().replace("USDT", "") },
+                update: { $inc: { balance: unusedQty } },
+                upsert: true,
+              },
+            });
+          }
+        }
+
+        // Remove from open orders cache
+        ordermulti.sRem(`openOrders:userId:${order.user}`, orderId);
+        ordermulti.del(`orderdetail:orderID:${orderId}`);
+      } else {
+        // Limit Order
+        if (totalTradedQty > 0) {
+          orderStatusOps.push({
+            updateOne: {
+              filter: { orderId },
+              update: {
+                positionStatus: remainingQty <= 0 ? "Filled" : "Open",
+                ...(remainingQty > 0 ? { orderQuantity: remainingQty } : {}),
+                entryPrice: avgPrice,
+              },
+            },
+          });
+
+          if (remainingQty <= 0) {
+            ordermulti.sRem(`openOrders:userId:${order.user}`, orderId);
+            ordermulti.del(`orderdetail:orderID:${orderId}`);
+          }
+        }
+      }
     }
 
-    await Order.bulkWrite(orderStatusOps, { ordered: false });
+    if (orderStatusOps.length > 0) {
+      await Order.bulkWrite(orderStatusOps, { ordered: false });
+    }
 
-    const tradeWalletOps = [];
-
+    // Build standard trade wallet updates (crediting filled assets)
     for (const trade of allTrades) {
+      // Buyer gets the asset
       tradeWalletOps.push({
         updateOne: {
           filter: {
@@ -147,14 +222,15 @@ export const bulkInsertion = async (
             asset: trade.currencyPair.toUpperCase().replace("USDT", ""),
           },
           update: { $inc: { balance: trade.tradedQuantity } },
+          upsert: true,
         },
       });
+      // Seller gets USDT
       tradeWalletOps.push({
         updateOne: {
           filter: { user: trade.sellerUserId, asset: "USDT" },
-          update: {
-            $inc: { balance: trade.tradedQuantity * trade.executionPrice },
-          },
+          update: { $inc: { balance: trade.tradedQuantity * trade.executionPrice } },
+          upsert: true,
         },
       });
     }
@@ -162,16 +238,23 @@ export const bulkInsertion = async (
     if (tradeWalletOps.length > 0) {
       await Wallet.bulkWrite(tradeWalletOps, { ordered: false });
 
-      // Clear Redis wallet caches for all users involved in trades
-      const tradeWalletMulti = Redis.getClient().multi();
-      for (const trade of allTrades) {
-        tradeWalletMulti.del(`wallet:${trade.buyerUserId}`);
-        tradeWalletMulti.del(`wallet:${trade.sellerUserId}`);
-        tradeWalletMulti.del(`all:wallet:${trade.buyerUserId}`);
-        tradeWalletMulti.del(`all:wallet:${trade.sellerUserId}`);
+      // Clear Redis wallet caches for all users involved in trades/refunds
+      const uniqueUserIds = Array.from(new Set([
+        ...batch.map(o => o.user),
+        ...allTrades.flatMap(t => [t.buyerUserId, t.sellerUserId])
+      ]));
+      for (const userId of uniqueUserIds) {
+        ordermulti.del(`wallet:${userId}`);
+        ordermulti.del(`all:wallet:${userId}`);
       }
-      await tradeWalletMulti.exec();
-      emit("wallet", "Wallet Update Successfully");
+    }
+
+    await ordermulti.exec();
+
+    if (allTrades.length > 0) {
+      emit("order", "Order Executed Successfully");
+      //push alltrades to orderHistory collection
+      await orderHistory.insertMany(allTrades);
     }
     console.log(`Processed batch of ${batch.length} orders.`);
   } catch (error) {
