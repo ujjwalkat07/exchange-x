@@ -13,10 +13,11 @@ import { Auth } from "./services/auth-services/auth-model";
 import { Wallet } from "./services/wallet-services/wallet-model";
 import { Order } from "./services/order-services/place-orders/order-model";
 import { getLatestPrice } from "./websockets/price-fetch";
+import { config } from "./config/env-config/config";
 
 const seed = async () => {
   try {
-    const directUri = "mongodb://itsashkatiyar07:RwaCV64nEj9hZrn1@ac-rqdo7ed-shard-00-00.nixcytd.mongodb.net:27017,ac-rqdo7ed-shard-00-01.nixcytd.mongodb.net:27017,ac-rqdo7ed-shard-00-02.nixcytd.mongodb.net:27017/?ssl=true&replicaSet=atlas-y6u59q-shard-0&authSource=admin&retryWrites=true&w=majority&appName=auth";
+    const directUri = String(config.MONGO_DB_URI)
     console.log("Connecting to MongoDB via direct URI...");
     await mongoose.connect(directUri);
     console.log("MongoDB connected successfully.");

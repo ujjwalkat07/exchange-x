@@ -24,7 +24,6 @@ const RestingOrders = () => {
       try {
         const res = await api.get("/api/order/openOrders");
         setData(res.data.data);
-        console.log("data",res.data.data)
       } catch (err) {
         if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || "Failed to load orders");

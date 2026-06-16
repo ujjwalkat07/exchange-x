@@ -116,8 +116,9 @@ export const bulkInsertion = async (
           updateOne: {
             filter: { orderId: trade.buyerOrderId },
             update: {
-              positionStatus: buyerRemainingQty <= 0 ? "Closed" : "Open",
-              orderQuantity: buyerRemainingQty > 0 ? buyerRemainingQty : 0,
+              positionStatus: buyerRemainingQty <= 0 ? "Filled" : "Open",
+              ...(buyerRemainingQty > 0 ? { orderQuantity: buyerRemainingQty } : {}),
+              entryPrice: trade.executionPrice,
             },
           },
         },
@@ -125,8 +126,9 @@ export const bulkInsertion = async (
           updateOne: {
             filter: { orderId: trade.sellerOrderId },
             update: {
-              positionStatus: sellerRemainingQty <= 0 ? "Closed" : "Open",
-              orderQuantity: sellerRemainingQty > 0 ? sellerRemainingQty : 0,
+              positionStatus: sellerRemainingQty <= 0 ? "Filled" : "Open",
+              ...(sellerRemainingQty > 0 ? { orderQuantity: sellerRemainingQty } : {}),
+              entryPrice: trade.executionPrice,
             },
           },
         },

@@ -21,7 +21,7 @@ export interface IBuyRequestBody {
   currencyPair: string;
   orderType: "Market" | "Limit";
   entryPrice?: number;
-  positionStatus: "open" | "closed";
+  positionStatus: "Open" | "Filled" | "Closed" | "Cancelled";
   orderAmount: number;
   orderSide: "BUY" | "SELL"; // USDT
 }

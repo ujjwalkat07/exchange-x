@@ -23,7 +23,7 @@ const kafkaConsume = async () => {
     await kafkaConsumer.subscribeToTopic("orders-detail");
 
     // Set up interval once, not per message
-    setInterval(() => bulkInsertion(messages, emitToClients), 5000);
+    setInterval(() => bulkInsertion(messages, emitToClients), 200);
 
     await kafkaConsumer.consume(async (message) => {
       // Add message to the batch

@@ -37,7 +37,7 @@ export const closePosition = async (
 
     const orders = await Order.find({
       user: userId,
-      positionStatus: "Closed",
+      positionStatus: { $in: ["Closed", "Cancelled"] },
     })
       .sort({
         createdAt: -1,

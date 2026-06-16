@@ -99,47 +99,42 @@ export default function Home() {
             <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-400 pb-3 border-b border-slate-900/60 mb-4">
               <button
                 onClick={() => setActiveTab("POSITION")}
-                className={`px-4 py-2 rounded-full transition-colors ${
-                  activeTab === "POSITION" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "POSITION" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                  }`}
               >
-                <span className="cursor-pointer">position</span>
+                <span className="cursor-pointer">Positions</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("OPENORDER")}
-                className={`px-4 py-2 rounded-full transition-colors ${
-                  activeTab === "OPENORDER" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "OPENORDER" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                  }`}
               >
-                <span className="cursor-pointer">openorder</span>
+                <span className="cursor-pointer">Open Orders</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("ORDER_HISTORY")}
-                className={`px-4 py-2 rounded-full transition-colors ${
-                  activeTab === "ORDER_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "ORDER_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                  }`}
               >
-                <span className="cursor-pointer">order history</span>
+                <span className="cursor-pointer">Orders history</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("TRADE_HISTORY")}
-                className={`px-4 py-2 rounded-full transition-colors ${
-                  activeTab === "TRADE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "TRADE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                  }`}
               >
-                <span className="cursor-pointer">trade history</span>
+                <span className="cursor-pointer">Trade history</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("BALANCE_HISTORY")}
-                className={`px-4 py-2 rounded-full transition-colors ${
-                  activeTab === "BALANCE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                }`}
+                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "BALANCE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                  }`}
               >
-                <span className="cursor-pointer">balance history</span>
+                <span className="cursor-pointer">Balance history</span>
               </button>
             </div>
 
@@ -149,19 +144,19 @@ export default function Home() {
             {activeTab === "TRADE_HISTORY" && <TradeHistory />}
             {activeTab === "BALANCE_HISTORY" && <Holding />}
           </div>
-      </div>
-
-      {messages && (
-        <div className="fixed border-b-4 min-w-64 justify-center bottom-6 right-4 sm:top-[90%] sm:left-[90%] sm:-translate-x-1/2 z-50 bg-emerald-500 text-white px-2 py-5 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in">
-          <span className="text-sm font-semibold">{messages}</span>
-          <button
-            onClick={() => setMessages(null)}
-            className="text-white hover:text-gray-200 text-lg leading-none"
-          >
-            <IoIosCloseCircle />
-          </button>
         </div>
-      )}
+
+        {messages && (
+          <div className="fixed border-b-4 min-w-64 justify-center bottom-6 right-4 sm:top-[90%] sm:left-[90%] sm:-translate-x-1/2 z-50 bg-emerald-500 text-white px-2 py-5 rounded-lg shadow-lg flex items-center gap-3 animate-fade-in">
+            <span className="text-sm font-semibold">{messages}</span>
+            <button
+              onClick={() => setMessages(null)}
+              className="text-white hover:text-gray-200 text-lg leading-none"
+            >
+              <IoIosCloseCircle />
+            </button>
+          </div>
+        )}
       </div>
     </>
   );
