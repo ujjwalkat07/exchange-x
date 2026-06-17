@@ -48,14 +48,16 @@ function randomAmount() {
 /**
  * Main test
  */
+const BASE_URL = __ENV.BASE_URL;
+
 export default function () {
   const orderSide = randomSide();
 
   // 🔁 Route based on order side
   const url =
     orderSide === "BUY"
-      ? "http://localhost:3000/api/order/buyorder"
-      : "http://localhost:3000/api/order/sellOrder";
+      ? `${BASE_URL}/api/order/buyorder`
+      : `${BASE_URL}/api/order/sellOrder`;
 
   const payload = JSON.stringify({
     currencyPair: randomPair(), // 🔑 Kafka partition key

@@ -43,11 +43,11 @@ const verifyJWT: RequestHandler = async (
     next();
   } catch (error) {
     if (error instanceof ApiErrorHandling) {
-      res
+      return res
         .status(error.statusCode)
         .json(new ApiResponse(error.statusCode, null, error.message));
     }
-    res
+    return res
       .status(HttpCodes.INTERNAL_SERVER_ERROR)
       .json(
         new ApiResponse(

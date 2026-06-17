@@ -1,7 +1,7 @@
 import { Kafka, logLevel } from "kafkajs";
 import { config } from "../env-config/config";
 
-const ca = Buffer.from(String(config.KAFKA_CERT), "base64").toString("utf-8");
+// const ca = Buffer.from(String(config.KAFKA_CERT), "base64").toString("utf-8");
 
 class KafkaConfig {
   private kafka: Kafka;
@@ -12,14 +12,14 @@ class KafkaConfig {
     this.kafka = new Kafka({
       clientId: "my-app",
       brokers: [this.brokers],
-      ssl: {
-        ca: [ca],
-      },
-      sasl: {
-        mechanism: "plain",
-        username: String(config.KAFKA_USERNAME),
-        password: String(config.KAFKA_PASSWORD),
-      },
+      // ssl: {
+      //   ca: [ca],
+      // },
+      // sasl: {
+      //   mechanism: "plain",
+      //   username: String(config.KAFKA_USERNAME),
+      //   password: String(config.KAFKA_PASSWORD),
+      // },
       logLevel: logLevel.ERROR,
     });
   }

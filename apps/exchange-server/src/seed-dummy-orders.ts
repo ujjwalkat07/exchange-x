@@ -24,68 +24,75 @@ const seed = async () => {
     await Redis.connect();
     const redis = Redis.getClient();
 
-    const email = "admin1@gmail.com";
-    console.log(`Checking for user: ${email}...`);
+    const admins = [
+      { email: "admin1@gmail.com", fullName: "Admin One", usdt: 1000000, btc: 100 },
+      { email: "admin2@gmail.com", fullName: "Admin Two", usdt: 1000000, btc: 100 },
+    ];
 
-    // 2. Find or create the user
-    let user = await Auth.findOne({ email });
-    if (!user) {
-      const hashedPassword = await bcrypt.hash("password123", 10);
-      user = await Auth.create({
-        fullName: "Admin One",
-        email,
-        password: hashedPassword,
+    for (const adminInfo of admins) {
+      const { email, fullName, usdt, btc } = adminInfo;
+      console.log(`Checking for user: ${email}...`);
+
+      let user = await Auth.findOne({ email });
+      if (!user) {
+        user = await Auth.create({
+          fullName,
+          email,
+          password: "password123",
+        });
+        console.log(`User created with ID: ${user._id}`);
+      } else {
+        console.log(`User already exists with ID: ${user._id}`);
+        user.password = "password123";
+        await user.save();
+      }
+
+      const userId = user._id.toString();
+
+      // Setup wallets (USDT and BTC)
+      console.log(`Setting up wallets for ${fullName}...`);
+      await Wallet.findOneAndUpdate(
+        { user: user._id, asset: "USDT" },
+        { balance: usdt },
+        { upsert: true, new: true }
+      );
+      await Wallet.findOneAndUpdate(
+        { user: user._id, asset: "BTC" },
+        { balance: btc },
+        { upsert: true, new: true }
+      );
+
+      // Seed Redis wallet cache
+      const walletKey = `wallet:${userId}`;
+      await redis.hSet(walletKey, {
+        USDT: usdt.toString(),
+        BTC: btc.toString(),
       });
-      console.log(`User created with ID: ${user._id}`);
-    } else {
-      console.log(`User already exists with ID: ${user._id}`);
-    }
+      console.log(`Wallets configured in DB and Redis for ${fullName}.`);
 
-    const userId = user._id.toString();
+      // Clean up any existing open orders
+      console.log(`Cleaning up previous open orders for ${fullName}...`);
+      const oldOrders = await Order.find({ user: user._id, positionStatus: "Open" });
+      const oldOrderIds = oldOrders.map((o) => o.orderId);
 
-    // 3. Setup wallets (USDT and BTC)
-    console.log("Setting up wallets for the admin user...");
-    await Wallet.findOneAndUpdate(
-      { user: user._id, asset: "USDT" },
-      { balance: 1000000 },
-      { upsert: true, new: true }
-    );
-    await Wallet.findOneAndUpdate(
-      { user: user._id, asset: "BTC" },
-      { balance: 100 },
-      { upsert: true, new: true }
-    );
+      if (oldOrderIds.length > 0) {
+        const pipeline = redis.multi();
+        for (const orderId of oldOrderIds) {
+          pipeline.del(`orderdetail:orderID:${orderId}`);
+          pipeline.sRem(`openOrders:userId:${userId}`, orderId);
+        }
+        await pipeline.exec();
 
-    // Seed Redis wallet cache
-    const walletKey = `wallet:${userId}`;
-    await redis.hSet(walletKey, {
-      USDT: 1000000,
-      BTC: 100,
-    });
-    console.log("Wallets configured in DB and Redis.");
+        // Clean up the orderbooks for BTCUSDT
+        for (const order of oldOrders) {
+          const orderbookKey = `orderbook:BTCUSDT:${order.orderSide}`;
+          const memberValue = `${userId}|${order.orderId}|${order.orderQuantity}`;
+          await redis.zRem(orderbookKey, memberValue);
+        }
 
-    // 4. Clean up any existing open orders for admin1
-    console.log("Cleaning up previous open orders for admin1...");
-    const oldOrders = await Order.find({ user: user._id, positionStatus: "Open" });
-    const oldOrderIds = oldOrders.map((o) => o.orderId);
-
-    if (oldOrderIds.length > 0) {
-      const pipeline = redis.multi();
-      for (const orderId of oldOrderIds) {
-        pipeline.del(`orderdetail:orderID:${orderId}`);
-        pipeline.sRem(`openOrders:userId:${userId}`, orderId);
+        await Order.deleteMany({ user: user._id, positionStatus: "Open" });
+        console.log(`Cleared ${oldOrderIds.length} existing open orders.`);
       }
-      await pipeline.exec();
-
-      // Clean up the orderbooks for BTCUSDT
-      for (const order of oldOrders) {
-        const orderbookKey = `orderbook:BTCUSDT:${order.orderSide}`;
-        const memberValue = `${userId}|${order.orderId}|${order.orderQuantity}`;
-        await redis.zRem(orderbookKey, memberValue);
-      }
-
-      await Order.deleteMany({ user: user._id, positionStatus: "Open" });
-      console.log(`Cleared ${oldOrderIds.length} existing open orders.`);
     }
 
     // 5. Get current price of BTCUSDT
@@ -97,26 +104,37 @@ const seed = async () => {
       console.log(`Could not fetch live price, falling back to $${currentPrice}. Error: ${err}`);
     }
 
-    // 6. Define dummy orders (3 BUYs below currentPrice, 3 SELLs above currentPrice)
+    // 6. Define dummy orders for admin1 and admin2
+    const user1 = await Auth.findOne({ email: "admin1@gmail.com" });
+    const user2 = await Auth.findOne({ email: "admin2@gmail.com" });
+
+    if (!user1 || !user2) {
+      throw new Error("Admin users could not be found/created.");
+    }
+
     const orderTemplates = [
-      // BUY side
-      { side: "BUY", price: Math.round(currentPrice * 0.99), qty: 0.05 },
-      { side: "BUY", price: Math.round(currentPrice * 0.98), qty: 0.08 },
-      { side: "BUY", price: Math.round(currentPrice * 0.97), qty: 0.12 },
-      // SELL side
-      { side: "SELL", price: Math.round(currentPrice * 1.01), qty: 0.05 },
-      { side: "SELL", price: Math.round(currentPrice * 1.02), qty: 0.08 },
-      { side: "SELL", price: Math.round(currentPrice * 1.03), qty: 0.12 },
+      // Admin 1 Orders
+      { user: user1, side: "BUY", price: Math.round(currentPrice * 0.99), qty: 0.05 },
+      { user: user1, side: "BUY", price: Math.round(currentPrice * 0.97), qty: 0.12 },
+      { user: user1, side: "SELL", price: Math.round(currentPrice * 1.01), qty: 0.05 },
+      { user: user1, side: "SELL", price: Math.round(currentPrice * 1.03), qty: 0.12 },
+
+      // Admin 2 Orders
+      { user: user2, side: "BUY", price: Math.round(currentPrice * 0.98), qty: 0.08 },
+      { user: user2, side: "BUY", price: Math.round(currentPrice * 0.96), qty: 0.15 },
+      { user: user2, side: "SELL", price: Math.round(currentPrice * 1.02), qty: 0.08 },
+      { user: user2, side: "SELL", price: Math.round(currentPrice * 1.04), qty: 0.15 },
     ];
 
     console.log("Inserting dummy orders...");
     for (const template of orderTemplates) {
       const orderId = uuidv4();
       const amount = template.price * template.qty;
+      const uId = template.user._id.toString();
 
       // Write to DB
       await Order.create({
-        user: user._id,
+        user: template.user._id,
         orderId,
         currencyPair: "BTCUSDT",
         orderQuantity: template.qty,
@@ -129,7 +147,7 @@ const seed = async () => {
 
       // Write detail to Redis
       const orderDetail = {
-        user: userId,
+        user: uId,
         orderId,
         orderSide: template.side,
         currencyPair: "BTCUSDT",
@@ -143,19 +161,19 @@ const seed = async () => {
       const pipeline = redis.multi();
       pipeline.hSet(`orderdetail:orderID:${orderId}`, orderDetail);
       pipeline.expire(`orderdetail:orderID:${orderId}`, 50000);
-      pipeline.sAdd(`openOrders:userId:${userId}`, orderId);
-      pipeline.expire(`openOrders:userId:${userId}`, 50000);
+      pipeline.sAdd(`openOrders:userId:${uId}`, orderId);
+      pipeline.expire(`openOrders:userId:${uId}`, 50000);
       await pipeline.exec();
 
       // Add to Orderbook Sorted Set
       const orderbookKey = `orderbook:BTCUSDT:${template.side}`;
-      const memberValue = `${userId}|${orderId}|${template.qty}`;
+      const memberValue = `${uId}|${orderId}|${template.qty}`;
       await redis.zAdd(orderbookKey, {
         score: template.price,
         value: memberValue,
       });
 
-      console.log(`Placed ${template.side} limit order for ${template.qty} BTC at $${template.price} (ID: ${orderId})`);
+      console.log(`Placed ${template.side} limit order for ${template.qty} BTC at $${template.price} for user ${template.user.email} (ID: ${orderId})`);
     }
 
     console.log("Dummy orders successfully seeded!");
