@@ -88,6 +88,7 @@ export const bulkInsertion = async (
     const involvedOrderIds = Array.from(new Set([...batchOrderIds, ...tradeOrderIds]));
 
     const involvedOrders = await Order.find({ orderId: { $in: involvedOrderIds } }).lean();
+    //here orderMap contain only the id of involved orders
     const ordersMap = new Map<string, any>();
     for (const order of involvedOrders) {
       ordersMap.set(order.orderId, order);
