@@ -6,7 +6,6 @@ dotenv.config({ path: "./.env" });
 // dns.setDefaultResultOrder("ipv4first");
 
 import mongoose from "mongoose";
-import bcrypt from "bcrypt";
 import { v4 as uuidv4 } from "uuid";
 import { Redis } from "./config/redis-config/redis-connection";
 import { Auth } from "./services/auth-services/auth-model";
@@ -75,23 +74,52 @@ const seed = async () => {
       const oldOrders = await Order.find({ user: user._id, positionStatus: "Open" });
       const oldOrderIds = oldOrders.map((o) => o.orderId);
 
-      if (oldOrderIds.length > 0) {
+      // Query open order IDs from Redis directly to handle cases where MongoDB was wiped but Redis is stale
+      const redisOrderIds = await redis.sMembers(`openOrders:userId:${userId}`);
+      const allOrderIds = Array.from(new Set([...oldOrderIds, ...redisOrderIds]));
+
+      if (allOrderIds.length > 0) {
         const pipeline = redis.multi();
-        for (const orderId of oldOrderIds) {
+        for (const orderId of allOrderIds) {
           pipeline.del(`orderdetail:orderID:${orderId}`);
           pipeline.sRem(`openOrders:userId:${userId}`, orderId);
         }
         await pipeline.exec();
 
-        // Clean up the orderbooks for BTCUSDT
+        // Clean up the orderbooks for BTCUSDT from DB records
         for (const order of oldOrders) {
           const orderbookKey = `orderbook:BTCUSDT:${order.orderSide}`;
           const memberValue = `${userId}|${order.orderId}|${order.orderQuantity}`;
-          await redis.zRem(orderbookKey, memberValue);
+          const zRemResult = await redis.zRem(orderbookKey, memberValue);
+          if (zRemResult === 0) {
+            // Fallback: search and destroy using prefix match
+            for (const side of ["BUY", "SELL"]) {
+              const bookKey = `orderbook:BTCUSDT:${side}`;
+              const members = await redis.zRange(bookKey, 0, -1);
+              const prefix = `${userId}|${order.orderId}|`;
+              const matchedMember = members.find((m) => m.startsWith(prefix));
+              if (matchedMember) {
+                await redis.zRem(bookKey, matchedMember);
+              }
+            }
+          }
+        }
+
+        // Also clean up any orphaned Redis orderbook items matching all retrieved IDs
+        for (const side of ["BUY", "SELL"]) {
+          const bookKey = `orderbook:BTCUSDT:${side}`;
+          const members = await redis.zRange(bookKey, 0, -1);
+          for (const orderId of allOrderIds) {
+            const prefix = `${userId}|${orderId}|`;
+            const matchedMember = members.find((m) => m.startsWith(prefix));
+            if (matchedMember) {
+              await redis.zRem(bookKey, matchedMember);
+            }
+          }
         }
 
         await Order.deleteMany({ user: user._id, positionStatus: "Open" });
-        console.log(`Cleared ${oldOrderIds.length} existing open orders.`);
+        console.log(`Cleared ${allOrderIds.length} existing open orders.`);
       }
     }
 

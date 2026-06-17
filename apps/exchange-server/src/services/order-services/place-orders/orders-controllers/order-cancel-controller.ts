@@ -48,7 +48,16 @@ export const cancelOrder = async (
       
       // The member value in sorted set is: `${userId}|${orderId}|${orderQuantity}`
       const memberValue = `${userId.toString()}|${orderId}|${order.orderQuantity}`;
-      await redis.zRem(orderbookKey, memberValue);
+      const zRemResult = await redis.zRem(orderbookKey, memberValue);
+      if (zRemResult === 0) {
+        // Fallback: scan the sorted set for a member with matching userId and orderId
+        const members = await redis.zRange(orderbookKey, 0, -1);
+        const prefix = `${userId.toString()}|${orderId}|`;
+        const matchedMember = members.find((m) => m.startsWith(prefix));
+        if (matchedMember) {
+          await redis.zRem(orderbookKey, matchedMember);
+        }
+      }
 
       // 2. Refund User Wallet
       if (order.orderSide === "BUY") {

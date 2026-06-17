@@ -40,7 +40,7 @@ const verifyJWT: RequestHandler = async (
     }
     req.user = Object(user);
 
-    next();
+    return next();
   } catch (error) {
     if (error instanceof ApiErrorHandling) {
       return res

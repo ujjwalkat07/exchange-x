@@ -100,18 +100,18 @@ const createOrder = async (
   let walletAsset = orderSide === "BUY" ? "USDT" : currencyPairUpper.replace("USDT", "");
 
   //to prevent the concurrent order running in parallel due to slow intenet/network it stop the other order to run for 5 seconds
-  const locked = await getLockedBalance(userId.toString(), walletAsset);
-  if (!locked) {
-    return res
-      .status(HttpCodes.TOO_MANY_REQUESTS)
-      .json(
-        new ApiResponse(
-          HttpCodes.TOO_MANY_REQUESTS,
-          null,
-          "Another order is already being processed. Please wait a moment.",
-        ),
-      );
-  }
+  // const locked = await getLockedBalance(userId.toString(), walletAsset);
+  // if (!locked) {
+  //   return res
+  //     .status(HttpCodes.TOO_MANY_REQUESTS)
+  //     .json(
+  //       new ApiResponse(
+  //         HttpCodes.TOO_MANY_REQUESTS,
+  //         null,
+  //         "Another order is already being processed. Please wait a moment.",
+  //       ),
+  //     );
+  // }
   try {
     if (orderType === "Limit") {
       if (!entryPrice || Number(entryPrice) <= 0) {
@@ -222,10 +222,11 @@ const createOrder = async (
           ),
         );
     }
-  } finally {
-    // release the lock so that next order is allowed to run
-    await releaseLockedBalance(userId.toString(), walletAsset);
   }
+  // } finally {
+  //   // release the lock so that next order is allowed to run
+  //   await releaseLockedBalance(userId.toString(), walletAsset);
+  // }
 };
 
 export const buyOrder = async (
