@@ -13,6 +13,32 @@ import {
 } from "./export";
 import { v4 as uuidv4 } from "uuid";
 
+const getWalletBalance = async (
+  userId: string,
+  walletAsset: string,
+): Promise<number> => {
+  const redisKey = `wallet:${userId}`;
+  const wallet = await Redis.getClient().hGet(redisKey, walletAsset);
+
+  if (wallet === null || wallet === undefined) {
+    // Cache miss — fetch from DB and flush to redis
+    const walletDB = await Wallet.findOne({
+      user: userId,
+      asset: walletAsset,
+    }).lean();
+
+    if (!walletDB) {
+      throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "Wallet not created");
+    }
+
+    const balance = Number(walletDB.balance);
+    await Redis.getClient().hSet(redisKey, { [walletAsset]: balance });
+    return balance;
+  }
+
+  return Number(wallet);
+};
+
 const createOrder = async (
   req: AuthRequest,
   res: Response,
@@ -35,6 +61,9 @@ const createOrder = async (
     const currencyPairUpper = String(currencyPair).toUpperCase();
 
     let price: number;
+    let walletBalance: number;
+    let walletAsset = orderSide === "BUY" ? "USDT" : currencyPairUpper.replace("USDT", "");
+
     if (orderType === "Limit") {
       if (!entryPrice || Number(entryPrice) <= 0) {
         throw new ApiErrorHandling(
@@ -43,60 +72,42 @@ const createOrder = async (
         );
       }
       price = Number(entryPrice);
+      walletBalance = await getWalletBalance(userId.toString(), walletAsset);
     } else {
-      const livePrice = await getLatestPrice(currencyPairUpper);
+      const [livePrice, balance] = await Promise.all([
+        getLatestPrice(currencyPairUpper),
+        getWalletBalance(userId.toString(), walletAsset),
+      ]);
       if (!livePrice) {
         throw new ApiErrorHandling(
           HttpCodes.SERVICE_UNAVAILABLE,
           "Live mark price unavailable. Please retry in a moment",
         );
       }
+      walletBalance = balance;
       price = livePrice;
     }
 
     let orderAmount: number;
     let orderQuantity: number;
     let balanceToCheck: number;
-    let walletAsset: string;
 
     if (orderSide === "BUY") {
       const body = req.body as IBuyRequestBody;
       orderAmount = Number(body.orderAmount);
       if (!orderAmount || orderAmount <= 0) {
-        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "orderAmount is required and must be greater than 0");
+        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "Amount is required and must be greater than 0");
       }
       orderQuantity = orderAmount / price;
       balanceToCheck = orderAmount;
-      walletAsset = "USDT";
     } else {
       const body = req.body as ISellRequestBody;
       orderQuantity = Number(body.orderQuantity);
       if (!orderQuantity || orderQuantity <= 0) {
-        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "orderQuantity is required and must be greater than 0");
+        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "Quantity is required and must be greater than 0");
       }
       orderAmount = orderQuantity * price;
       balanceToCheck = orderQuantity;
-      walletAsset = currencyPairUpper.replace("USDT", "");
-    }
-
-    const redisKey = `wallet:${userId}`;
-    const wallet = await Redis.getClient().hGet(redisKey, walletAsset);
-    let walletBalance = Number(wallet);
-
-    if (walletBalance === 0) {
-      const walletDB = await Wallet.findOne({
-        user: userId,
-        asset: walletAsset,
-      }).lean();
-
-      if (!walletDB) {
-        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "wallet not created");
-      }
-
-      walletBalance = Number(walletDB.balance);
-      await Redis.getClient().hSet(redisKey, {
-        [walletAsset]: walletBalance,
-      });
     }
 
     if (balanceToCheck > walletBalance) {
