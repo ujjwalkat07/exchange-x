@@ -21,7 +21,9 @@ interface TradeItem {
 const TradeHistory = () => {
   const [data, setData] = useState<TradeItem[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const isChanging = useSelector((state: RootState) => state.order.orderCountStatus);
+  const isChanging = useSelector(
+    (state: RootState) => state.order.orderCountStatus,
+  );
   const isSocketChanging = useSelector(
     (state: RootState) => state.socket.status,
   );
@@ -62,7 +64,10 @@ const TradeHistory = () => {
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={8} className="text-center py-12 text-slate-500 text-sm">
+              <td
+                colSpan={8}
+                className="text-center py-12 text-slate-500 text-sm"
+              >
                 {error || "No trade history"}
               </td>
             </tr>
@@ -72,10 +77,18 @@ const TradeHistory = () => {
               key={trade._id}
               className="border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors"
             >
-              <td className="py-3.5 pl-3 font-semibold text-slate-200">{trade.currencyPair.toUpperCase()}</td>
-              <td className="py-3.5">{Number(trade.tradedQuantity).toFixed(6)}</td>
-              <td className="py-3.5">${Number(trade.executionPrice).toFixed(2)}</td>
-              <td className="py-3.5">${Number(trade.orderAmount).toFixed(2)}</td>
+              <td className="py-3.5 pl-3 font-semibold text-slate-200">
+                {trade.currencyPair.toUpperCase()}
+              </td>
+              <td className="py-3.5">
+                {Number(trade.tradedQuantity).toFixed(6)}
+              </td>
+              <td className="py-3.5">
+                ${Number(trade.executionPrice).toFixed(2)}
+              </td>
+              <td className="py-3.5">
+                ${Number(trade.orderAmount).toFixed(2)}
+              </td>
               <td className="py-3.5 text-slate-400">{trade.orderId}</td>
               <td className="py-3.5">
                 <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded text-[10px]">
@@ -93,7 +106,13 @@ const TradeHistory = () => {
                 })}
               </td>
               <td className="py-3.5 pr-3 text-right font-semibold">
-                <span className={trade.orderSide === "BUY" ? "text-emerald-400" : "text-red-400"}>
+                <span
+                  className={
+                    trade.orderSide === "BUY"
+                      ? "text-emerald-400"
+                      : "text-red-400"
+                  }
+                >
                   {trade.orderSide}
                 </span>
               </td>

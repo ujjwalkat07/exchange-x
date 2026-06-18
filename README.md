@@ -1,159 +1,186 @@
-# Turborepo starter
+# Exchange-X: High-Performance Crypto Exchange
 
-This Turborepo starter is maintained by the Turborepo core team.
+Welcome to **Exchange-X**, a feature-rich, high-performance cryptocurrency exchange platform. This project is structured as a monorepo using **Turborepo** to orchestrate a modern React/Next.js frontend and a Node.js/Express/Kafka/Redis backend trading engine.
 
-## Using this example
+[![Exchange Web Dashboard Mockup](https://iili.io/qFBvK8v.md.png)](https://freeimage.host/i/qFBvK8v)
+[![Exchange Web Analytics Mockup](https://iili.io/qFB8Yga.md.png)](https://freeimage.host/i/qFB8Yga)
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
-```
+## 🏗️ Monorepo Structure
 
-## What's inside?
+This project uses [Turborepo](https://turborepo.dev/) to manage the following workspaces:
 
-This Turborepo includes the following packages/apps:
+- **`apps/exchange-web`**: The Next.js-powered trading frontend.
+- **`apps/exchange-server`**: The Node.js-powered high-throughput trading engine.
+- **`packages/eslint-config`**: Shared linting configurations.
+- **`packages/typescript-config`**: Shared TypeScript compiler settings.
 
-### Apps and Packages
+---
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+## 💻 Frontend (Web Application)
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
+The web client provides a simulated, premium environment for real-time crypto trading, complete with live market data, advanced charting, and wallet management.
 
-### Utilities
+### Features
 
-This Turborepo has some additional tools already setup for you:
+- **Live Trading Dashboard:** Integrated TradingView widget for advanced interactive charts.
+- **Real-time Order Book:** Live streaming order book displaying buy and sell orders.
+- **Spot Trading:** Submit market and limit orders instantly.
+- **Wallet Management:** View balances and manage simulated funds across multiple assets.
+- **Secure Authentication:** User login, registration, and session token persistence.
+- **Trade History:** View open orders, order history, and past trade history.
+- **Multi-Market Support:** Quick switching between various cryptocurrency trading pairs.
 
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
+### Built With
 
-### Build
+- [Next.js](https://nextjs.org/) (App Router)
+- [React](https://reactjs.org/) & [TypeScript](https://www.typescriptlang.org/)
+- [Redux Toolkit](https://redux-toolkit.js.org/) (Global state management)
+- [Tailwind CSS](https://tailwindcss.com/) (Responsive modern UI styling)
+- [Axios](https://axios-http.com/) & [WebSockets (ws)](https://github.com/websockets/ws) for API/real-time communication
 
-To build all apps and packages, run the following command:
+---
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+## ⚙️ Backend (Trading Engine)
 
-```sh
-cd my-turborepo
-turbo build
-```
+The core backend is a high-performance trading engine designed with a fast matching engine algorithm and robust queue-based persistence.
 
-Without global `turbo`, use your package manager:
+### Tech Stack
 
-```sh
-cd my-turborepo
-npx turbo build
-pnpm dlx turbo build
-pnpm exec turbo build
-```
+- **Core:** Node.js, Express, TypeScript
+- **Database:** MongoDB (Persistent state)
+- **Messaging & Queueing:** Apache Kafka (Asynchronous ingestion)
+- **In-Memory Store & Cache:** Redis (Fast order book querying)
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Core Engine Logic
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+#### 1. Price-Time Priority Order Matching Engine
 
-```sh
-turbo build --filter=docs
-```
+The order matching engine ([`orders-matching-engine.ts`](apps/exchange-server/src/matching-engine-algorithm/orders-matching-engine.ts)) uses an in-memory Redis-backed order book to match buy and sell orders:
 
-Without global `turbo`:
+- **Order Book Management:** Open limit orders are maintained in price-time order in Redis to guarantee ultra-low latency.
+- **Matching Algorithm:**
+  - **Priority:** Orders are sorted by price (highest buy/lowest sell first), then by creation time.
+  - **Matching Rules:** A buy order matches a sell order if `buyPrice >= sellPrice`.
+- **Execution & Settlement:**
+  - _Full Match:_ Settles and executes the trade. Wallet balances are adjusted, and trade history is updated.
+  - _Partial Match:_ Settles the matching portion. The remainder of the order is added to the order book.
+  - _No Match:_ Places the order in the order book.
+- **Real-time Updates:** Match events and order book updates are published instantly over WebSockets.
 
-```sh
-npx turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
+#### 2. High-Throughput Bulk Insertion
 
-### Develop
+To prevent database bottlenecks under heavy trading loads, the engine uses **Kafka** ([`bulk-insertion.ts`](apps/exchange-server/src/services/kafka-services/bulk-insertion.ts)) to queue and batch trade logs and wallet balances before writing to MongoDB.
 
-To develop all apps and packages, run the following command:
+### API Endpoints
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+| Category   | Endpoint                         | Method | Description                   |
+| :--------- | :------------------------------- | :----- | :---------------------------- |
+| **Auth**   | `/api/v1/auth/register`          | POST   | Register new user             |
+|            | `/api/v1/auth/login`             | POST   | Authenticate & get token      |
+|            | `/api/v1/auth/logout`            | POST   | Terminate session             |
+|            | `/api/v1/auth/refresh`           | POST   | Refresh token                 |
+| **Wallet** | `/api/v1/wallet/create`          | POST   | Create user wallet            |
+|            | `/api/v1/wallet/balance/:userId` | GET    | Retrieve wallet balance       |
+|            | `/api/v1/wallet/balance/:userId` | PUT    | Modify wallet balance         |
+| **Orders** | `/api/v1/orders/buy`             | POST   | Place limit/market buy order  |
+|            | `/api/v1/orders/sell`            | POST   | Place limit/market sell order |
+|            | `/api/v1/orders/open`            | POST   | Fetch open orders             |
+|            | `/api/v1/orders/close`           | POST   | Cancel / close an order       |
+|            | `/api/v1/orders/history/:userId` | GET    | Retrieve trade history        |
+|            | `/api/v1/orders/orderbook`       | GET    | Retrieve live order book      |
 
-```sh
-cd my-turborepo
-turbo dev
-```
+---
 
-Without global `turbo`, use your package manager:
+## ⚡ Performance & Benchmark Statistics
 
-```sh
-cd my-turborepo
-npx turbo dev
-pnpm exec turbo dev
-pnpm exec turbo dev
-```
+We conducted a high-concurrency load test on the limit order endpoints to verify the performance limits of the trading engine.
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+### Test Environment & Configuration
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+- **Tool:** Grafana k6
+- **Test Script:** [`test/limit-order-rate.ts`](apps/exchange-server/test/limit-order-rate.ts)
+- **VUs (Virtual Users):** Up to **1,000 parallel VUs** (ramping up from 200 to 1,000, then sustaining peak, then cooling down)
+- **Duration:** 1 minute 0 seconds (active test load)
 
-```sh
-turbo dev --filter=web
-```
+### Results Summary
 
-Without global `turbo`:
+Under peak load, the system successfully processed **156,380 orders** in 60 seconds with **zero failures**. This translates to an order execution rate of **156,380 orders/minute (~2,606 orders/second)**, comfortably exceeding the design goal of 150k orders/minute.
 
-```sh
-npx turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
-```
+#### 📊 Performance Metrics
 
-### Remote Caching
+| Metric                      | Target / Threshold   | Actual Result                          | Status  |
+| :-------------------------- | :------------------- | :------------------------------------- | :------ |
+| **Throughput (Orders/min)** | > 150,000 orders/min | **156,380 orders/min** (~2,606.22/sec) | ✅ Pass |
+| **Success Rate**            | > 90.00%             | **100.00%**                            | ✅ Pass |
+| **Failed Orders**           | < 500 total          | **0**                                  | ✅ Pass |
+| **p(95) HTTP Latency**      | < 2,000 ms           | **398.99 ms**                          | ✅ Pass |
+| **p(99) Order Latency**     | < 5,000 ms           | **420.54 ms**                          | ✅ Pass |
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+#### 📈 Latency Breakdown
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+- **Average Latency:** 236.01 ms
+- **Median Latency:** 250.14 ms
+- **90th Percentile (p90):** 385.93 ms
+- **95th Percentile (p95):** 398.99 ms
+- **99th Percentile (p99):** 420.54 ms
+- **Minimum Latency:** 1.06 ms
+- **Maximum Latency:** 477.82 ms
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+#### 🌐 Network & System Throughput
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended):
+- **Data Sent:** 92 MB (1.5 MB/s)
+- **Data Received:** 105 MB (1.7 MB/s)
+- **Checks Succeeded:** 156,380 / 156,380 (100.00%)
 
-```sh
-cd my-turborepo
-turbo login
-```
+---
 
-Without global `turbo`, use your package manager:
+## 🚀 Getting Started
 
-```sh
-cd my-turborepo
-npx turbo login
-pnpm exec turbo login
-pnpm exec turbo login
-```
+### 📋 Prerequisites
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+Ensure you have the following installed:
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [pnpm](https://pnpm.io/) (v9.0.0 or higher recommended)
+- Docker & Docker Compose (for Kafka, Redis, MongoDB services)
 
-With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed:
+### 🛠️ Local Development Setup
 
-```sh
-turbo link
-```
+1.  **Clone the repository and install dependencies:**
 
-Without global `turbo`:
+    ```bash
+    pnpm install
+    ```
 
-```sh
-npx turbo link
-pnpm exec turbo link
-pnpm exec turbo link
-```
+2.  **Start required services (Redis, Kafka, MongoDB):**
+    Ensure your Docker daemon is running, then start the services defined in `docker-compose.yaml`:
 
-## Useful Links
+    ```bash
+    docker compose up -d
+    ```
 
-Learn more about the power of Turborepo:
+3.  **Run in development mode:**
+    This starts all applications (web client and trading server) concurrently under Turborepo:
+    ```bash
+    pnpm dev
+    ```
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+    - **Frontend (Web Dashboard):** Access it at [http://localhost:3000](http://localhost:3000)
+    - **Backend (Trading Server):** Running at [http://localhost:8008](http://localhost:8008) (or configured port)
+
+### 🧪 Running Tests & Benchmarks
+
+To run tests or performance benchmarks:
+
+- **Run overall server tests:**
+  ```bash
+  cd apps/exchange-server
+  npm test
+  ```
+- **Run the k6 Load Benchmark:**
+  Ensure you have `k6` installed locally, then run:
+  ```bash
+  k6 run apps/exchange-server/test/limit-order-rate.ts
+  ```

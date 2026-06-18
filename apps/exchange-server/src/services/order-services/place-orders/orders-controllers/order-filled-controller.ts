@@ -41,7 +41,13 @@ export const openPosition = async (
 
     return res
       .status(HttpCodes.OK)
-      .json(new ApiResponse(HttpCodes.OK, matchedOrders, "Open positions (matched orders)"));
+      .json(
+        new ApiResponse(
+          HttpCodes.OK,
+          matchedOrders,
+          "Open positions (matched orders)",
+        ),
+      );
   } catch (error) {
     console.error("openPosition error:", error);
     if (error instanceof ApiErrorHandling) {

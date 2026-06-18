@@ -1,7 +1,7 @@
 import WalletDashboard from "@/components/wallet/WalletDashboard";
 
 const Wallet = () => {
-  return (<WalletDashboard/>);
+  return <WalletDashboard />;
 };
 
-export default Wallet
+export default Wallet;

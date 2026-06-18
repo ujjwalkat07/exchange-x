@@ -15,11 +15,15 @@ const Orderbook = () => {
   const [sellData, setSellData] = useState<OrderBookItem[]>([]);
   const [error, setError] = useState("");
   const [livePrice, setLivePrice] = useState<number | null>(null);
-  const [priceDirection, setPriceDirection] = useState<"up" | "down" | "neutral">("neutral");
+  const [priceDirection, setPriceDirection] = useState<
+    "up" | "down" | "neutral"
+  >("neutral");
   const prevPriceRef = useRef<number | null>(null);
   const param = useParams();
   const currency = String(param.currency ?? "");
-  const orderCount = useSelector((state: RootState) => state.order.orderCountStatus);
+  const orderCount = useSelector(
+    (state: RootState) => state.order.orderCountStatus,
+  );
   const isChanging = useSelector((state: RootState) => state.socket.status);
 
   // Fetch orderbook data
@@ -55,7 +59,6 @@ const Orderbook = () => {
       }
     };
     fetchData();
-
   }, [currency, isChanging, orderCount]);
 
   // Live price WebSocket
@@ -63,7 +66,7 @@ const Orderbook = () => {
     if (!currency) return;
     const symbol = currency.toLowerCase();
     const ws = new WebSocket(
-      `wss://fstream.binance.com/market/stream?streams=${symbol}@ticker`
+      `wss://fstream.binance.com/market/stream?streams=${symbol}@ticker`,
     );
 
     ws.onmessage = (event: MessageEvent) => {
@@ -91,9 +94,13 @@ const Orderbook = () => {
     return () => ws.close();
   }, [currency]);
 
-  const formattedPrice = livePrice !== null
-    ? livePrice.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : "—";
+  const formattedPrice =
+    livePrice !== null
+      ? livePrice.toLocaleString("en-US", {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })
+      : "—";
 
   const priceColorClass =
     priceDirection === "up"
@@ -103,11 +110,7 @@ const Orderbook = () => {
         : "text-white";
 
   const arrowIcon =
-    priceDirection === "up"
-      ? "▲"
-      : priceDirection === "down"
-        ? "▼"
-        : "";
+    priceDirection === "up" ? "▲" : priceDirection === "down" ? "▼" : "";
 
   return (
     <>
@@ -172,7 +175,9 @@ const Orderbook = () => {
 
           {/* Live Price Display */}
           <div className="py-3 px-3 flex items-center gap-2 border-y border-slate-800/60">
-            <span className={`font-bold text-2xl ${priceColorClass} transition-colors duration-300`}>
+            <span
+              className={`font-bold text-2xl ${priceColorClass} transition-colors duration-300`}
+            >
               {formattedPrice}
             </span>
             {arrowIcon && (
@@ -228,4 +233,3 @@ const Orderbook = () => {
 };
 
 export default Orderbook;
-

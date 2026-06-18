@@ -4,13 +4,7 @@ import { check, sleep } from "k6";
 /**
  * Trading pairs → Kafka partition keys
  */
-const PAIRS = [
-  "BTCUSDT",
-  "BNBUSDT",
-  "XRPUSDT",
-  "ADAUSDT",
-  "DOGEUSDT",
-];
+const PAIRS = ["BTCUSDT", "BNBUSDT", "XRPUSDT", "ADAUSDT", "DOGEUSDT"];
 
 /**
  * k6 test configuration

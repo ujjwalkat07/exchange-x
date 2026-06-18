@@ -71,10 +71,12 @@ const Login = () => {
           </div>
           <div className="grid grid-cols-2 gap-2 text-slate-500 font-mono text-[11px]">
             <div>
-              <span className="text-slate-600">Email:</span> <span className="text-slate-300">admin@gmail.com</span>
+              <span className="text-slate-600">Email:</span>{" "}
+              <span className="text-slate-300">admin@gmail.com</span>
             </div>
             <div>
-              <span className="text-slate-600">Password:</span> <span className="text-slate-300">admin</span>
+              <span className="text-slate-600">Password:</span>{" "}
+              <span className="text-slate-300">admin</span>
             </div>
           </div>
         </div>

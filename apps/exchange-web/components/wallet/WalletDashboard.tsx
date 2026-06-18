@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { api } from '@/lib/axios';
-import axios from 'axios';
-import { useEffect, useState } from 'react';
-import TradingViewTickerTape from './TradingViewTickerTape';
-import TradingViewMarketSummary from './TradingViewMarketSummary';
-import { WalletAsset } from '@/lib/types';
-import { RiLoader2Fill } from 'react-icons/ri';
+import { api } from "@/lib/axios";
+import axios from "axios";
+import { useEffect, useState } from "react";
+import TradingViewTickerTape from "./TradingViewTickerTape";
+import TradingViewMarketSummary from "./TradingViewMarketSummary";
+import { WalletAsset } from "@/lib/types";
+import { RiLoader2Fill } from "react-icons/ri";
 
 export default function WalletDashboard() {
   const [assets, setAssets] = useState<WalletAsset[]>([]);
@@ -16,14 +16,14 @@ export default function WalletDashboard() {
 
   const fetchWalletAssets = async () => {
     try {
-      const res = await api.get('/api/wallet/getallwallets');
+      const res = await api.get("/api/wallet/getallwallets");
       const data = res.data.data;
       setAssets(data.wallets);
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        setError(err.response?.data?.message || 'Failed to load wallet assets');
+        setError(err.response?.data?.message || "Failed to load wallet assets");
       } else {
-        setError('An unexpected error occurred');
+        setError("An unexpected error occurred");
       }
     }
   };
@@ -41,14 +41,14 @@ export default function WalletDashboard() {
   const handleRestoreBalance = async () => {
     setRestoring(true);
     try {
-      await api.patch('/api/wallet/updateuserbalance');
+      await api.patch("/api/wallet/updateuserbalance");
       await fetchWalletAssets();
-      alert('USDT balance restored successfully!');
+      alert("USDT balance restored successfully!");
     } catch (err) {
       if (axios.isAxiosError(err)) {
-        alert(err.response?.data?.message || 'Failed to restore balance');
+        alert(err.response?.data?.message || "Failed to restore balance");
       } else {
-        alert('Failed to restore balance');
+        alert("Failed to restore balance");
       }
     } finally {
       setRestoring(false);
@@ -56,11 +56,19 @@ export default function WalletDashboard() {
   };
 
   if (loading) {
-    return <div className="min-h-screen bg-[#080810] text-white flex items-center justify-center">Loading wallet...</div>;
+    return (
+      <div className="min-h-screen bg-[#080810] text-white flex items-center justify-center">
+        Loading wallet...
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="min-h-screen bg-[#080810] text-white flex items-center justify-center">Error: {error}</div>;
+    return (
+      <div className="min-h-screen bg-[#080810] text-white flex items-center justify-center">
+        Error: {error}
+      </div>
+    );
   }
 
   const firstAsset = assets[0];
@@ -90,23 +98,27 @@ export default function WalletDashboard() {
                       Restoring...
                     </>
                   ) : (
-                    'Restore Balance'
+                    "Restore Balance"
                   )}
                 </button>
               </div>
               {firstAsset ? (
                 <>
                   <h2 className="text-2xl mt-4">{firstAsset.asset}</h2>
-                  <h2 className="text-6xl sm:text-7xl md:text-8xl font-bold">${firstAsset.balance.toFixed(3)}</h2>
+                  <h2 className="text-6xl sm:text-7xl md:text-8xl font-bold">
+                    ${firstAsset.balance.toFixed(3)}
+                  </h2>
                 </>
               ) : (
                 <div className="flex items-center justify-center h-48">
                   <p className="text-gray-400">No wallet assets found.</p>
                 </div>
               )}
-              <hr className='mt-5 border-gray-700' />
+              <hr className="mt-5 border-gray-700" />
 
-              <h1 className="text-xl font-bold text-gray-400 mt-5">Portfolio</h1>
+              <h1 className="text-xl font-bold text-gray-400 mt-5">
+                Portfolio
+              </h1>
               <div className="overflow-x-auto mt-5">
                 <table className="w-full min-w-[600px]">
                   <thead>
@@ -127,7 +139,10 @@ export default function WalletDashboard() {
                   </thead>
                   <tbody>
                     {assets.map((d, index) => (
-                      <tr key={index} className="hover:bg-gray-800/50 transition-colors">
+                      <tr
+                        key={index}
+                        className="hover:bg-gray-800/50 transition-colors"
+                      >
                         <td className="px-3 py-4 text-slate-50 font-medium text-left border-b border-gray-700 text-sm">
                           {d.asset}
                         </td>

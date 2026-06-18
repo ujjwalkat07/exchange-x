@@ -5,7 +5,7 @@ export { getOpenOrders } from "./order-open-controller";
 export { closePosition } from "./order-closed-controller";
 
 export { Redis } from "../../../../config/redis-config/redis-connection";
-export { Kafka } from "../../../../config/kafka-config/kafka-producer"
+export { Kafka } from "../../../../config/kafka-config/kafka-producer";
 export { Order } from "../order-model";
 export { Response } from "express";
 export { Wallet } from "../../../wallet-services/wallet-model";

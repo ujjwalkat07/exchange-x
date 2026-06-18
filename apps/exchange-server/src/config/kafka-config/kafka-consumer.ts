@@ -20,7 +20,9 @@ class KafkaConsumer {
     await this.consumer.subscribe({ topic, fromBeginning: true });
   }
 
-  async consume(callback: (kafkaMessage: IOrder) => Promise<void> | void): Promise<void> {
+  async consume(
+    callback: (kafkaMessage: IOrder) => Promise<void> | void,
+  ): Promise<void> {
     await this.consumer.run({
       autoCommit: true,
       eachMessage: async ({ message }) => {

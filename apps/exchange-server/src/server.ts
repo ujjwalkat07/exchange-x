@@ -1,4 +1,4 @@
-import './dns-setup';
+import "./dns-setup";
 import { httpServer } from "./app";
 import dbConnect from "./config/db-config/db-connection";
 import { config } from "./config/env-config/config";

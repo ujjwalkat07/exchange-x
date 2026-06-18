@@ -20,7 +20,11 @@ export default function Home() {
   const [messages, setMessages] = useState<string | null>(null);
   const params = useParams();
   const [activeTab, setActiveTab] = useState<
-    "POSITION" | "OPENORDER" | "ORDER_HISTORY" | "TRADE_HISTORY" | "BALANCE_HISTORY"
+    | "POSITION"
+    | "OPENORDER"
+    | "ORDER_HISTORY"
+    | "TRADE_HISTORY"
+    | "BALANCE_HISTORY"
   >("POSITION");
 
   const dispatch = useDispatch();
@@ -99,40 +103,55 @@ export default function Home() {
             <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-400 pb-3 border-b border-slate-900/60 mb-4">
               <button
                 onClick={() => setActiveTab("POSITION")}
-                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "POSITION" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                  }`}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "POSITION"
+                    ? "bg-slate-200 text-slate-950 font-bold"
+                    : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
                 <span className="cursor-pointer">Positions</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("OPENORDER")}
-                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "OPENORDER" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                  }`}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "OPENORDER"
+                    ? "bg-slate-200 text-slate-950 font-bold"
+                    : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
                 <span className="cursor-pointer">Open Orders</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("ORDER_HISTORY")}
-                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "ORDER_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                  }`}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "ORDER_HISTORY"
+                    ? "bg-slate-200 text-slate-950 font-bold"
+                    : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
                 <span className="cursor-pointer">Orders history</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("TRADE_HISTORY")}
-                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "TRADE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                  }`}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "TRADE_HISTORY"
+                    ? "bg-slate-200 text-slate-950 font-bold"
+                    : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
                 <span className="cursor-pointer">Trade history</span>
               </button>
 
               <button
                 onClick={() => setActiveTab("BALANCE_HISTORY")}
-                className={`px-4 py-2 rounded-full transition-colors ${activeTab === "BALANCE_HISTORY" ? "bg-slate-200 text-slate-950 font-bold" : "bg-slate-900/40 border border-slate-800 hover:text-white"
-                  }`}
+                className={`px-4 py-2 rounded-full transition-colors ${
+                  activeTab === "BALANCE_HISTORY"
+                    ? "bg-slate-200 text-slate-950 font-bold"
+                    : "bg-slate-900/40 border border-slate-800 hover:text-white"
+                }`}
               >
                 <span className="cursor-pointer">Balance history</span>
               </button>

@@ -84,10 +84,17 @@ export const bulkInsertion = async (
 
     // Query all involved orders in a single DB call
     const batchOrderIds = batch.map((o) => o.orderId);
-    const tradeOrderIds = allTrades.flatMap((t) => [t.buyerOrderId, t.sellerOrderId]);
-    const involvedOrderIds = Array.from(new Set([...batchOrderIds, ...tradeOrderIds]));
+    const tradeOrderIds = allTrades.flatMap((t) => [
+      t.buyerOrderId,
+      t.sellerOrderId,
+    ]);
+    const involvedOrderIds = Array.from(
+      new Set([...batchOrderIds, ...tradeOrderIds]),
+    );
 
-    const involvedOrders = await Order.find({ orderId: { $in: involvedOrderIds } }).lean();
+    const involvedOrders = await Order.find({
+      orderId: { $in: involvedOrderIds },
+    }).lean();
     //here orderMap contain only the id of involved orders
     const ordersMap = new Map<string, any>();
     for (const order of involvedOrders) {
@@ -95,7 +102,10 @@ export const bulkInsertion = async (
     }
 
     // Track total traded quantity and amount per order
-    const orderStats = new Map<string, { tradedQty: number; tradedAmount: number }>();
+    const orderStats = new Map<
+      string,
+      { tradedQty: number; tradedAmount: number }
+    >();
     for (const trade of allTrades) {
       // Buyer
       if (!orderStats.has(trade.buyerOrderId)) {
@@ -123,10 +133,14 @@ export const bulkInsertion = async (
       const order = ordersMap.get(orderId);
       if (!order) continue;
 
-      const stats = orderStats.get(orderId) || { tradedQty: 0, tradedAmount: 0 };
+      const stats = orderStats.get(orderId) || {
+        tradedQty: 0,
+        tradedAmount: 0,
+      };
       const totalTradedQty = stats.tradedQty;
       const totalTradedAmount = stats.tradedAmount;
-      const avgPrice = totalTradedQty > 0 ? totalTradedAmount / totalTradedQty : 0;
+      const avgPrice =
+        totalTradedQty > 0 ? totalTradedAmount / totalTradedQty : 0;
       const remainingQty = order.orderQuantity - totalTradedQty;
 
       if (order.orderType === "Market") {
@@ -176,7 +190,10 @@ export const bulkInsertion = async (
           if (unusedQty > 0) {
             tradeWalletOps.push({
               updateOne: {
-                filter: { user: order.user, asset: order.currencyPair.toUpperCase().replace("USDT", "") },
+                filter: {
+                  user: order.user,
+                  asset: order.currencyPair.toUpperCase().replace("USDT", ""),
+                },
                 update: { $inc: { balance: unusedQty } },
                 upsert: true,
               },
@@ -230,7 +247,9 @@ export const bulkInsertion = async (
       tradeWalletOps.push({
         updateOne: {
           filter: { user: trade.sellerUserId, asset: "USDT" },
-          update: { $inc: { balance: trade.tradedQuantity * trade.executionPrice } },
+          update: {
+            $inc: { balance: trade.tradedQuantity * trade.executionPrice },
+          },
           upsert: true,
         },
       });
@@ -240,10 +259,12 @@ export const bulkInsertion = async (
       await Wallet.bulkWrite(tradeWalletOps, { ordered: false });
 
       // Clear Redis wallet caches for all users involved in trades/refunds
-      const uniqueUserIds = Array.from(new Set([
-        ...batch.map(o => o.user),
-        ...allTrades.flatMap(t => [t.buyerUserId, t.sellerUserId])
-      ]));
+      const uniqueUserIds = Array.from(
+        new Set([
+          ...batch.map((o) => o.user),
+          ...allTrades.flatMap((t) => [t.buyerUserId, t.sellerUserId]),
+        ]),
+      );
       for (const userId of uniqueUserIds) {
         ordermulti.del(`wallet:${userId}`);
         ordermulti.del(`all:wallet:${userId}`);

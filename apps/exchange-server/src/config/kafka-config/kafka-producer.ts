@@ -33,20 +33,22 @@ class KafkaProducer {
   }
 
   sendToConsumer(key: string, topic: string, message: string): void {
-    this.producer.send({
-      topic,
-      messages: [
-        {
-          key: `${key}`,
-          value: message,
-        },
-      ],
-      compression: CompressionTypes.Snappy,
-      timeout: 5000,
-      acks: 0,
-    }).catch((error) => {
-      console.error("Kafka producer send error:", error);
-    });
+    this.producer
+      .send({
+        topic,
+        messages: [
+          {
+            key: `${key}`,
+            value: message,
+          },
+        ],
+        compression: CompressionTypes.Snappy,
+        timeout: 5000,
+        acks: 0,
+      })
+      .catch((error) => {
+        console.error("Kafka producer send error:", error);
+      });
   }
 
   async disconnect(): Promise<void> {

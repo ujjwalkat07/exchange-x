@@ -32,12 +32,20 @@ export const getOpenOrders = async (
       );
 
       // Filter out any empty hashes just in case of race conditions
-      const validOrders = restingOrders.filter((order) => order && order.orderId);
+      const validOrders = restingOrders.filter(
+        (order) => order && order.orderId,
+      );
 
       if (validOrders.length > 0) {
         return res
           .status(HttpCodes.OK)
-          .json(new ApiResponse(HttpCodes.OK, validOrders, "Resting open orders directly from Redis"));
+          .json(
+            new ApiResponse(
+              HttpCodes.OK,
+              validOrders,
+              "Resting open orders directly from Redis",
+            ),
+          );
       }
     }
 
@@ -78,7 +86,13 @@ export const getOpenOrders = async (
 
     return res
       .status(HttpCodes.OK)
-      .json(new ApiResponse(HttpCodes.OK, orders, "Open orders retrieved from Database"));
+      .json(
+        new ApiResponse(
+          HttpCodes.OK,
+          orders,
+          "Open orders retrieved from Database",
+        ),
+      );
   } catch (error) {
     console.error("getOpenOrders error:", error);
     if (error instanceof ApiErrorHandling) {

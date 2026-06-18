@@ -24,7 +24,7 @@ export const updateUserBalance = async (req: AuthRequest, res: Response) => {
         "Wallet not found. Create wallet first",
       );
     }
-    console.log(wallet)
+    console.log(wallet);
     if (!(wallet.balance < balance)) {
       throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "wallet already fill");
     }

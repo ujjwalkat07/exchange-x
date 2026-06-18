@@ -10,7 +10,9 @@ import { ClosePosition } from "@/lib/types";
 const OrderHistory = () => {
   const [data, setData] = useState<ClosePosition[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const isChanging = useSelector((state: RootState) => state.order.orderCountStatus);
+  const isChanging = useSelector(
+    (state: RootState) => state.order.orderCountStatus,
+  );
   const isSocketChanging = useSelector(
     (state: RootState) => state.socket.status,
   );
@@ -50,7 +52,10 @@ const OrderHistory = () => {
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={7} className="text-center py-12 text-slate-500 text-sm">
+              <td
+                colSpan={7}
+                className="text-center py-12 text-slate-500 text-sm"
+              >
                 {error || "No order history"}
               </td>
             </tr>
@@ -60,8 +65,12 @@ const OrderHistory = () => {
               key={order.orderId}
               className="border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors"
             >
-              <td className="py-3.5 pl-3 font-semibold text-slate-200">{order.currencyPair.toUpperCase()}</td>
-              <td className="py-3.5">{Number(order.orderQuantity).toFixed(6)}</td>
+              <td className="py-3.5 pl-3 font-semibold text-slate-200">
+                {order.currencyPair.toUpperCase()}
+              </td>
+              <td className="py-3.5">
+                {Number(order.orderQuantity).toFixed(6)}
+              </td>
               <td className="py-3.5">${Number(order.entryPrice).toFixed(2)}</td>
               <td className="py-3.5 text-slate-400">{order.orderId}</td>
               <td className="py-3.5 text-slate-400">{order.orderType}</td>
@@ -71,7 +80,13 @@ const OrderHistory = () => {
                 </span>
               </td>
               <td className="py-3.5 pr-3 text-right font-semibold">
-                <span className={order.orderSide === "BUY" ? "text-emerald-400" : "text-red-400"}>
+                <span
+                  className={
+                    order.orderSide === "BUY"
+                      ? "text-emerald-400"
+                      : "text-red-400"
+                  }
+                >
                   {order.orderSide}
                 </span>
               </td>

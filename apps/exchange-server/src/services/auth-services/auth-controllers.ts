@@ -7,12 +7,7 @@ import {
   getAccessAndRefreshToken,
   jwtVerifyAccessToken,
 } from "../../utils/utils-export";
-import {
-  Request,
-  Response,
-  CookieOptions,
-  RequestHandler
-} from "express";
+import { Request, Response, CookieOptions, RequestHandler } from "express";
 import { AuthRequest } from "../../middleware/jwt-verify";
 
 const userSignup = async (
@@ -300,7 +295,7 @@ const genrateNewAccessAndRefreshToken = async (req: Request, res: Response) => {
 
 const verifyJWTToken: RequestHandler = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ) => {
   try {
     const token: string = req.cookies?.accessToken;

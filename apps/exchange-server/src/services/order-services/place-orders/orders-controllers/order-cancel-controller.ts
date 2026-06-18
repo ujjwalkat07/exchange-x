@@ -35,7 +35,7 @@ export const cancelOrder = async (
     if (!order) {
       throw new ApiErrorHandling(
         HttpCodes.NOT_FOUND,
-        "Order or position not found"
+        "Order or position not found",
       );
     }
 
@@ -45,7 +45,7 @@ export const cancelOrder = async (
       // 1. Remove from Redis Orderbook Sorted Set
       const bookSide = order.orderSide; // "BUY" or "SELL"
       const orderbookKey = `orderbook:${order.currencyPair}:${bookSide}`;
-      
+
       // The member value in sorted set is: `${userId}|${orderId}|${orderQuantity}`
       const memberValue = `${userId.toString()}|${orderId}|${order.orderQuantity}`;
       const zRemResult = await redis.zRem(orderbookKey, memberValue);
@@ -65,14 +65,14 @@ export const cancelOrder = async (
         const refundAmount = order.orderQuantity * order.entryPrice;
         await Wallet.updateOne(
           { user: userId, asset: "USDT" },
-          { $inc: { balance: refundAmount } }
+          { $inc: { balance: refundAmount } },
         );
       } else {
         // Refund remaining orderQuantity in asset token (e.g. BTC)
         const tokenAsset = order.currencyPair.toUpperCase().replace("USDT", "");
         await Wallet.updateOne(
           { user: userId, asset: tokenAsset },
-          { $inc: { balance: order.orderQuantity } }
+          { $inc: { balance: order.orderQuantity } },
         );
       }
 
@@ -96,15 +96,19 @@ export const cancelOrder = async (
 
       return res
         .status(HttpCodes.OK)
-        .json(new ApiResponse(HttpCodes.OK, order, "Order cancelled successfully"));
-
+        .json(
+          new ApiResponse(HttpCodes.OK, order, "Order cancelled successfully"),
+        );
     } else {
       // positionStatus === "Filled" -> Close Active Position
       let currentPrice = order.entryPrice;
       try {
         currentPrice = await getLatestPrice(order.currencyPair);
       } catch (err) {
-        console.error("Failed to fetch live price for closing position, falling back to entryPrice:", err);
+        console.error(
+          "Failed to fetch live price for closing position, falling back to entryPrice:",
+          err,
+        );
       }
 
       const tokenAsset = order.currencyPair.toUpperCase().replace("USDT", "");
@@ -114,21 +118,21 @@ export const cancelOrder = async (
         // Long Position: deduct token asset from user, credit equivalent USDT
         await Wallet.updateOne(
           { user: userId, asset: tokenAsset },
-          { $inc: { balance: -order.orderQuantity } }
+          { $inc: { balance: -order.orderQuantity } },
         );
         await Wallet.updateOne(
           { user: userId, asset: "USDT" },
-          { $inc: { balance: order.orderQuantity * currentPrice } }
+          { $inc: { balance: order.orderQuantity * currentPrice } },
         );
       } else {
         // Short Position: credit token asset to user, deduct equivalent USDT
         await Wallet.updateOne(
           { user: userId, asset: tokenAsset },
-          { $inc: { balance: order.orderQuantity } }
+          { $inc: { balance: order.orderQuantity } },
         );
         await Wallet.updateOne(
           { user: userId, asset: "USDT" },
-          { $inc: { balance: -(order.orderQuantity * currentPrice) } }
+          { $inc: { balance: -(order.orderQuantity * currentPrice) } },
         );
       }
 
@@ -152,9 +156,10 @@ export const cancelOrder = async (
 
       return res
         .status(HttpCodes.OK)
-        .json(new ApiResponse(HttpCodes.OK, order, "Position closed successfully"));
+        .json(
+          new ApiResponse(HttpCodes.OK, order, "Position closed successfully"),
+        );
     }
-
   } catch (error) {
     console.error("Cancel/Close order error:", error);
     if (error instanceof ApiErrorHandling) {

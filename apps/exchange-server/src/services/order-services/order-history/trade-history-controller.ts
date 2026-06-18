@@ -9,7 +9,7 @@ import { orderHistory } from "./trade-history-model";
 
 export const tradeHistoryController = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   try {
     const userId = req.user?._id;
@@ -17,17 +17,15 @@ export const tradeHistoryController = async (
     if (!userId) {
       throw new ApiErrorHandling(
         HttpCodes.UNAUTHORIZED,
-        "User not authenticated"
+        "User not authenticated",
       );
     }
 
     const result = await orderHistory
       .find({
-        $or: [
-          { buyerUserId: userId },
-          { sellerUserId: userId },
-        ],
-      }).lean();
+        $or: [{ buyerUserId: userId }, { sellerUserId: userId }],
+      })
+      .lean();
 
     const formattedTrades = result.map((trade) => {
       const isBuyer = trade.buyerUserId.toString() === userId.toString();
@@ -38,26 +36,30 @@ export const tradeHistoryController = async (
       };
     });
 
-    return res.status(HttpCodes.OK).json(
-      new ApiResponse(
-        HttpCodes.OK,
-        formattedTrades,
-        "Trade history fetched successfully"
-      )
-    );
+    return res
+      .status(HttpCodes.OK)
+      .json(
+        new ApiResponse(
+          HttpCodes.OK,
+          formattedTrades,
+          "Trade history fetched successfully",
+        ),
+      );
   } catch (error) {
-    console.log(error)
+    console.log(error);
     if (error instanceof ApiErrorHandling) {
       return res
         .status(error.statusCode)
         .json(new ApiResponse(error.statusCode, null, error.message));
     }
-    return res.status(HttpCodes.INTERNAL_SERVER_ERROR).json(
-      new ApiResponse(
-        HttpCodes.INTERNAL_SERVER_ERROR,
-        null,
-        "Internal Server Error"
-      )
-    );
+    return res
+      .status(HttpCodes.INTERNAL_SERVER_ERROR)
+      .json(
+        new ApiResponse(
+          HttpCodes.INTERNAL_SERVER_ERROR,
+          null,
+          "Internal Server Error",
+        ),
+      );
   }
 };

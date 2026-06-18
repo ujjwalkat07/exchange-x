@@ -1,15 +1,21 @@
 import { Redis } from "../config/redis-config/redis-connection";
 import { IOrder } from "../services/order-services/place-orders/order-model";
 
-
 // interface IOrders {
 //   score: number;
 //   value: string;
 // }
 export const orderMatchingEngine = async (message: IOrder) => {
   // for buy order
-  const { user, currencyPair, orderSide, orderQuantity, orderId, entryPrice, orderType } =
-    message;
+  const {
+    user,
+    currencyPair,
+    orderSide,
+    orderQuantity,
+    orderId,
+    entryPrice,
+    orderType,
+  } = message;
   const id = user;
   let userQty = Number(orderQuantity);
   const userOrderId = orderId;
@@ -27,7 +33,9 @@ export const orderMatchingEngine = async (message: IOrder) => {
     const order =
       orderSide === "BUY"
         ? await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0)
-        : await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0, { REV: true });
+        : await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0, {
+            REV: true,
+          });
 
     if (!order || order.length <= 0) break;
 

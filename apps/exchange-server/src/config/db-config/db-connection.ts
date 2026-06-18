@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { config } from "../env-config/config";
 import { ApiErrorHandling } from "../../utils/utils-export";
 
-console.log("url",config.MONGO_DB_URI)
+console.log("url", config.MONGO_DB_URI);
 const dbConnect = async () => {
   try {
     await mongoose.connect(String(config.MONGO_DB_URI));

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, useRef, memo } from "react";
 
 // ✅ Fix 1: Correct prop type - should be an object, not a primitive string
 type TradingViewWidgetProps = {
@@ -14,7 +14,8 @@ function TradingViewWidget({ symbol }: TradingViewWidgetProps) {
     if (existingScript) return;
 
     const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
+    script.src =
+      "https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js";
     script.type = "text/javascript";
     script.async = true;
 
@@ -41,7 +42,7 @@ function TradingViewWidget({ symbol }: TradingViewWidgetProps) {
       compareSymbols: [],
       studies: [],
       width: "100%",
-      height: "100%"
+      height: "100%",
     });
 
     container.current.appendChild(script);

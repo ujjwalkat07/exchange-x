@@ -15,9 +15,9 @@ const _config = {
   REDIS_URI: process.env.REDIS_URI,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
   REDIS_PORT: process.env.REDIS_PORT,
-  PORT : process.env.PORT,
-  KAFKA_CERT:process.env.KAFKA_CERT,
-  CORS_URL:process.env.CORS_URL
+  PORT: process.env.PORT,
+  KAFKA_CERT: process.env.KAFKA_CERT,
+  CORS_URL: process.env.CORS_URL,
 };
 
 export const config = Object.freeze(_config);

@@ -20,9 +20,13 @@ const OpenOrder = () => {
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [livePrices, setLivePrices] = useState<Record<string, number>>({});
-  
-  const isChanging = useSelector((state: RootState) => state.order.orderCountStatus);
-  const isSocketChanging = useSelector((state: RootState) => state.socket.status);
+
+  const isChanging = useSelector(
+    (state: RootState) => state.order.orderCountStatus,
+  );
+  const isSocketChanging = useSelector(
+    (state: RootState) => state.socket.status,
+  );
   const dispatch = useDispatch();
 
   // Load open positions
@@ -31,7 +35,6 @@ const OpenOrder = () => {
       try {
         const res = await api.get("/api/order/openPositions");
         setData(res.data.data);
-
       } catch (err) {
         if (axios.isAxiosError(err)) {
           setError(err.response?.data?.message || "Failed to load orders");
@@ -46,7 +49,9 @@ const OpenOrder = () => {
 
   // Connect to Binance Futures Mark Price stream to compute live PnL
   useEffect(() => {
-    const ws = new WebSocket("wss://fstream.binance.com/market/stream?streams=!markPrice@arr");
+    const ws = new WebSocket(
+      "wss://fstream.binance.com/market/stream?streams=!markPrice@arr",
+    );
 
     ws.onmessage = (event: MessageEvent) => {
       try {
@@ -108,7 +113,10 @@ const OpenOrder = () => {
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={13} className="text-center py-12 text-slate-500 text-sm">
+              <td
+                colSpan={13}
+                className="text-center py-12 text-slate-500 text-sm"
+              >
                 {error || "No open positions"}
               </td>
             </tr>
@@ -116,7 +124,8 @@ const OpenOrder = () => {
 
           {data.map((order) => {
             const symbolUpper = order.currencyPair.toUpperCase();
-            const currentPrice = livePrices[symbolUpper] || Number(order.entryPrice);
+            const currentPrice =
+              livePrices[symbolUpper] || Number(order.entryPrice);
             const entryPrice = Number(order.entryPrice);
             const quantity = Number(order.orderQuantity);
 
@@ -130,10 +139,13 @@ const OpenOrder = () => {
 
             const tradeValue = quantity * entryPrice;
             const marketValue = quantity * currentPrice;
-            const pnlPercent = tradeValue > 0 ? (unrealizedPnL / tradeValue) * 100 : 0;
+            const pnlPercent =
+              tradeValue > 0 ? (unrealizedPnL / tradeValue) * 100 : 0;
 
             const isPnLPositive = unrealizedPnL >= 0;
-            const pnlColorClass = isPnLPositive ? "text-emerald-400" : "text-red-400";
+            const pnlColorClass = isPnLPositive
+              ? "text-emerald-400"
+              : "text-red-400";
             const pnlPrefix = isPnLPositive ? "+" : "";
 
             return (
@@ -150,7 +162,13 @@ const OpenOrder = () => {
 
                 {/* Side */}
                 <td className="py-3.5 font-semibold">
-                  <span className={order.orderSide === "BUY" ? "text-emerald-400" : "text-red-400"}>
+                  <span
+                    className={
+                      order.orderSide === "BUY"
+                        ? "text-emerald-400"
+                        : "text-red-400"
+                    }
+                  >
                     {order.orderSide === "BUY" ? "BUY" : "SELL"}
                   </span>
                 </td>
@@ -159,26 +177,49 @@ const OpenOrder = () => {
                 <td className="py-3.5">{quantity.toFixed(4)}</td>
 
                 {/* Avg Fill Price */}
-                <td className="py-3.5">${entryPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-3.5">
+                  $
+                  {entryPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
 
                 {/* Last Price */}
-                <td className="py-3.5">${currentPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                <td className="py-3.5">
+                  $
+                  {currentPrice.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </td>
 
                 {/* Unrealized PnL */}
                 <td className={`py-3.5 font-bold ${pnlColorClass}`}>
-                  {pnlPrefix}{unrealizedPnL.toFixed(2)} <span className="text-[9px] font-normal text-slate-500">USDT</span>
+                  {pnlPrefix}
+                  {unrealizedPnL.toFixed(2)}{" "}
+                  <span className="text-[9px] font-normal text-slate-500">
+                    USDT
+                  </span>
                 </td>
 
                 {/* Unrealized PnL % */}
                 <td className={`py-3.5 font-bold ${pnlColorClass}`}>
-                  {pnlPrefix}{pnlPercent.toFixed(2)}%
+                  {pnlPrefix}
+                  {pnlPercent.toFixed(2)}%
                 </td>
 
                 {/* Trade Value */}
-                <td className="py-3.5">${tradeValue.toFixed(2)} <span className="text-[9px] text-slate-500">USD</span></td>
+                <td className="py-3.5">
+                  ${tradeValue.toFixed(2)}{" "}
+                  <span className="text-[9px] text-slate-500">USD</span>
+                </td>
 
                 {/* Market Value */}
-                <td className="py-3.5">${marketValue.toFixed(2)} <span className="text-[9px] text-slate-500">USD</span></td>
+                <td className="py-3.5">
+                  ${marketValue.toFixed(2)}{" "}
+                  <span className="text-[9px] text-slate-500">USD</span>
+                </td>
 
                 {/* Close Action Button */}
                 <td className="py-3.5 pr-3 text-right">

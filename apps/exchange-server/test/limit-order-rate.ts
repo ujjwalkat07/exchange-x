@@ -35,19 +35,19 @@ const tokens = new SharedArray("tokens", function () {
 export const options = {
   // ── Ramped stages ──────────────────────────────────────────────────────
   stages: [
-    { duration: "10s", target: 200 },   // warm-up
-    { duration: "10s", target: 500 },   // ramp to medium load
-    { duration: "10s", target: 1000 },  // ramp to high load
-    { duration: "20s", target: 1000 },  // sustain peak
-    { duration: "10s", target: 0 },     // cool down
+    { duration: "10s", target: 200 }, // warm-up
+    { duration: "10s", target: 500 }, // ramp to medium load
+    { duration: "10s", target: 1000 }, // ramp to high load
+    { duration: "20s", target: 1000 }, // sustain peak
+    { duration: "10s", target: 0 }, // cool down
   ],
 
   // ── Thresholds ─────────────────────────────────────────────────────────
   thresholds: {
-    "http_req_duration": ["p(95)<2000"],   // 95th pct under 2s
-    "order_latency_ms":  ["p(99)<5000"],   // tail under 5s
-    "success_rate":      ["rate>0.90"],     // 90%+ success
-    "failed_orders":     ["count<500"],     // tolerate some errors
+    http_req_duration: ["p(95)<2000"], // 95th pct under 2s
+    order_latency_ms: ["p(99)<5000"], // tail under 5s
+    success_rate: ["rate>0.90"], // 90%+ success
+    failed_orders: ["count<500"], // tolerate some errors
   },
 
   // ── Connection tuning ─────────────────────────────────────────────────
@@ -102,7 +102,7 @@ export default function () {
   const params = {
     headers: {
       "Content-Type": "application/json",
-      "Cookie": `accessToken=${token}`,
+      Cookie: `accessToken=${token}`,
     },
     timeout: "10s",
     // Compression saves bandwidth → faster requests
@@ -126,7 +126,7 @@ export default function () {
     // Rate-limit error logging — only log every ~100th error to avoid console overhead
     if (Math.random() < 0.01) {
       console.error(
-        `❌ [sample] status=${res.status} body=${String(res.body).slice(0, 150)}`
+        `❌ [sample] status=${res.status} body=${String(res.body).slice(0, 150)}`,
       );
     }
   }

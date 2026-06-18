@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/axios";
-import {useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useState } from "react";
 import axios from "axios";
 
 export default function ProtectedLayout({

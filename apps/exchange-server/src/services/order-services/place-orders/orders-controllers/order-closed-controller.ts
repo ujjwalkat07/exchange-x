@@ -20,9 +20,7 @@ export const closePosition = async (
 
     const redis = Redis.getClient();
 
-    const orderIds = await redis.sMembers(
-      `closeOrders:userId:${userId}`
-    );
+    const orderIds = await redis.sMembers(`closeOrders:userId:${userId}`);
 
     if (orderIds && orderIds.length > 0 && orderIds[0] != null) {
       const result = await Promise.all(

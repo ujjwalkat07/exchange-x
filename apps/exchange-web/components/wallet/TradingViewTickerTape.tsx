@@ -5,7 +5,7 @@ const TickerTape = ({
   symbols = "BINANCE:BTCUSDT,BINANCE:ETHUSDT,BINANCE:XRPUSDT,BINANCE:DOGEUSDT,BINANCE:BNBUSDT,BINANCE:LINKUSDT,BINANCE:AVAXUSDT",
   hideChart = true,
   itemSize = "compact",
-  theme="dark"
+  theme = "dark",
 }: TickerTapeProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 

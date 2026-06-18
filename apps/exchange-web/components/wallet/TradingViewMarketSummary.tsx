@@ -6,7 +6,7 @@ const TradingViewMarketSummary = ({
   direction = "vertical",
   assetsType = "crypto",
   itemSize = "compact",
-  theme = "dark"
+  theme = "dark",
 }: MarketSummaryProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
 

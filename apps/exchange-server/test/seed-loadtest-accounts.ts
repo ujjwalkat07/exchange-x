@@ -24,21 +24,26 @@ const seedLoadtestAccounts = async () => {
     const tokens: string[] = [];
 
     console.log(`\nStarting cleanup of previous loadtest accounts...`);
-    
+
     // Find all users matching loadtest pattern
     const existingUsers = await Auth.find({ email: /^loadtest.*@gmail\.com$/ });
-    const existingUserIds = existingUsers.map(u => u._id);
+    const existingUserIds = existingUsers.map((u) => u._id);
 
     if (existingUserIds.length > 0) {
-      console.log(`Cleaning up ${existingUserIds.length} existing loadtest users and their data...`);
-      
+      console.log(
+        `Cleaning up ${existingUserIds.length} existing loadtest users and their data...`,
+      );
+
       // Clear wallets in MongoDB
       await Wallet.deleteMany({ user: { $in: existingUserIds } });
-      
+
       // Clear open orders in MongoDB
-      const openOrders = await Order.find({ user: { $in: existingUserIds }, positionStatus: "Open" });
-      const openOrderIds = openOrders.map(o => o.orderId);
-      
+      const openOrders = await Order.find({
+        user: { $in: existingUserIds },
+        positionStatus: "Open",
+      });
+      const openOrderIds = openOrders.map((o) => o.orderId);
+
       if (openOrderIds.length > 0) {
         await Order.deleteMany({ orderId: { $in: openOrderIds } });
       }
@@ -50,7 +55,7 @@ const seedLoadtestAccounts = async () => {
         pipeline.del(`wallet:${userIdStr}`);
         pipeline.del(`openOrders:userId:${userIdStr}`);
       }
-      
+
       for (const orderId of openOrderIds) {
         pipeline.del(`orderdetail:orderID:${orderId}`);
       }
@@ -62,7 +67,10 @@ const seedLoadtestAccounts = async () => {
         const members = await redis.zRange(bookKey, 0, -1);
         for (const member of members) {
           const parts = member.split("|");
-          if (parts[0] && existingUserIds.some(id => id.toString() === parts[0])) {
+          if (
+            parts[0] &&
+            existingUserIds.some((id) => id.toString() === parts[0])
+          ) {
             await redis.zRem(bookKey, member);
           }
         }
@@ -84,41 +92,43 @@ const seedLoadtestAccounts = async () => {
       const end = Math.min(i + chunkSize - 1, NUM_ACCOUNTS);
 
       for (let j = i; j <= end; j++) {
-        chunkPromises.push((async (index) => {
-          const email = `loadtest${index}@gmail.com`;
-          const fullName = `Loadtest User ${index}`;
-          const password = "password123";
+        chunkPromises.push(
+          (async (index) => {
+            const email = `loadtest${index}@gmail.com`;
+            const fullName = `Loadtest User ${index}`;
+            const password = "password123";
 
-          // Create User
-          const user = await Auth.create({
-            fullName,
-            email,
-            password,
-          });
-          const userIdStr = user._id.toString();
+            // Create User
+            const user = await Auth.create({
+              fullName,
+              email,
+              password,
+            });
+            const userIdStr = user._id.toString();
 
-          // Create Wallets
-          await Wallet.findOneAndUpdate(
-            { user: user._id, asset: "USDT" },
-            { balance: usdtBalance },
-            { upsert: true, new: true }
-          );
-          await Wallet.findOneAndUpdate(
-            { user: user._id, asset: "BTC" },
-            { balance: btcBalance },
-            { upsert: true, new: true }
-          );
+            // Create Wallets
+            await Wallet.findOneAndUpdate(
+              { user: user._id, asset: "USDT" },
+              { balance: usdtBalance },
+              { upsert: true, new: true },
+            );
+            await Wallet.findOneAndUpdate(
+              { user: user._id, asset: "BTC" },
+              { balance: btcBalance },
+              { upsert: true, new: true },
+            );
 
-          // Seed Redis Wallet Cache
-          await redis.hSet(`wallet:${userIdStr}`, {
-            USDT: usdtBalance.toString(),
-            BTC: btcBalance.toString(),
-          });
+            // Seed Redis Wallet Cache
+            await redis.hSet(`wallet:${userIdStr}`, {
+              USDT: usdtBalance.toString(),
+              BTC: btcBalance.toString(),
+            });
 
-          // Generate Token
-          const { accessToken } = await getAccessAndRefreshToken(userIdStr);
-          tokens.push(accessToken);
-        })(j));
+            // Generate Token
+            const { accessToken } = await getAccessAndRefreshToken(userIdStr);
+            tokens.push(accessToken);
+          })(j),
+        );
       }
 
       await Promise.all(chunkPromises);
@@ -129,7 +139,7 @@ const seedLoadtestAccounts = async () => {
     const tokenFilePath = path.join(__dirname, "../test/loadtest-tokens.json");
     fs.mkdirSync(path.dirname(tokenFilePath), { recursive: true });
     fs.writeFileSync(tokenFilePath, JSON.stringify(tokens, null, 2));
-    
+
     console.log(`\nSuccessfully seeded ${NUM_ACCOUNTS} accounts!`);
     console.log(`Access tokens written to: ${tokenFilePath}`);
   } catch (error) {

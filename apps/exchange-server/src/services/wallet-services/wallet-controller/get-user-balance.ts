@@ -18,7 +18,10 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
     const { asset1, asset2 } = req.query;
     // console.log(req.query)
     if (!asset1 || !asset2) {
-      throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "asset1 and asset2 are required");
+      throw new ApiErrorHandling(
+        HttpCodes.BAD_REQUEST,
+        "asset1 and asset2 are required",
+      );
     }
 
     const redisKey = `wallet:${userid}`;
@@ -49,7 +52,7 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
           { asset: asset2 as string, user: userid },
         ],
       },
-      { asset: 1, balance: 1 }
+      { asset: 1, balance: 1 },
     ).lean();
 
     if (!wallets || wallets.length === 0) {
@@ -60,7 +63,10 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
     const wallet2 = wallets.find((w) => w.asset === asset2);
 
     if (!wallet1) {
-      throw new ApiErrorHandling(HttpCodes.NOT_FOUND, `Wallet not found for ${asset1}`);
+      throw new ApiErrorHandling(
+        HttpCodes.NOT_FOUND,
+        `Wallet not found for ${asset1}`,
+      );
     }
 
     const balance1 = wallet1.balance;

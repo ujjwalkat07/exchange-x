@@ -16,7 +16,7 @@ import { config } from "../src/config/env-config/config";
 
 const seed = async () => {
   try {
-    const directUri = String(config.MONGO_DB_URI)
+    const directUri = String(config.MONGO_DB_URI);
     console.log("Connecting to MongoDB via direct URI...");
     await mongoose.connect(directUri);
     console.log("MongoDB connected successfully.");
@@ -24,8 +24,18 @@ const seed = async () => {
     const redis = Redis.getClient();
 
     const admins = [
-      { email: "admin1@gmail.com", fullName: "Admin One", usdt: 1000000, btc: 100 },
-      { email: "admin2@gmail.com", fullName: "Admin Two", usdt: 1000000, btc: 100 },
+      {
+        email: "admin1@gmail.com",
+        fullName: "Admin One",
+        usdt: 1000000,
+        btc: 100,
+      },
+      {
+        email: "admin2@gmail.com",
+        fullName: "Admin Two",
+        usdt: 1000000,
+        btc: 100,
+      },
     ];
 
     for (const adminInfo of admins) {
@@ -53,12 +63,12 @@ const seed = async () => {
       await Wallet.findOneAndUpdate(
         { user: user._id, asset: "USDT" },
         { balance: usdt },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
       await Wallet.findOneAndUpdate(
         { user: user._id, asset: "BTC" },
         { balance: btc },
-        { upsert: true, new: true }
+        { upsert: true, new: true },
       );
 
       // Seed Redis wallet cache
@@ -71,12 +81,17 @@ const seed = async () => {
 
       // Clean up any existing open orders
       console.log(`Cleaning up previous open orders for ${fullName}...`);
-      const oldOrders = await Order.find({ user: user._id, positionStatus: "Open" });
+      const oldOrders = await Order.find({
+        user: user._id,
+        positionStatus: "Open",
+      });
       const oldOrderIds = oldOrders.map((o) => o.orderId);
 
       // Query open order IDs from Redis directly to handle cases where MongoDB was wiped but Redis is stale
       const redisOrderIds = await redis.sMembers(`openOrders:userId:${userId}`);
-      const allOrderIds = Array.from(new Set([...oldOrderIds, ...redisOrderIds]));
+      const allOrderIds = Array.from(
+        new Set([...oldOrderIds, ...redisOrderIds]),
+      );
 
       if (allOrderIds.length > 0) {
         const pipeline = redis.multi();
@@ -129,7 +144,9 @@ const seed = async () => {
       currentPrice = await getLatestPrice("BTCUSDT");
       console.log(`Latest BTCUSDT price: $${currentPrice}`);
     } catch (err) {
-      console.log(`Could not fetch live price, falling back to $${currentPrice}. Error: ${err}`);
+      console.log(
+        `Could not fetch live price, falling back to $${currentPrice}. Error: ${err}`,
+      );
     }
 
     // 6. Define dummy orders for admin1 and admin2
@@ -142,16 +159,56 @@ const seed = async () => {
 
     const orderTemplates = [
       // Admin 1 Orders
-      { user: user1, side: "BUY", price: Math.round(currentPrice * 0.99), qty: 0.05 },
-      { user: user1, side: "BUY", price: Math.round(currentPrice * 0.97), qty: 0.12 },
-      { user: user1, side: "SELL", price: Math.round(currentPrice * 1.01), qty: 0.05 },
-      { user: user1, side: "SELL", price: Math.round(currentPrice * 1.03), qty: 0.12 },
+      {
+        user: user1,
+        side: "BUY",
+        price: Math.round(currentPrice * 0.99),
+        qty: 0.05,
+      },
+      {
+        user: user1,
+        side: "BUY",
+        price: Math.round(currentPrice * 0.97),
+        qty: 0.12,
+      },
+      {
+        user: user1,
+        side: "SELL",
+        price: Math.round(currentPrice * 1.01),
+        qty: 0.05,
+      },
+      {
+        user: user1,
+        side: "SELL",
+        price: Math.round(currentPrice * 1.03),
+        qty: 0.12,
+      },
 
       // Admin 2 Orders
-      { user: user2, side: "BUY", price: Math.round(currentPrice * 0.98), qty: 0.08 },
-      { user: user2, side: "BUY", price: Math.round(currentPrice * 0.96), qty: 0.15 },
-      { user: user2, side: "SELL", price: Math.round(currentPrice * 1.02), qty: 0.08 },
-      { user: user2, side: "SELL", price: Math.round(currentPrice * 1.04), qty: 0.15 },
+      {
+        user: user2,
+        side: "BUY",
+        price: Math.round(currentPrice * 0.98),
+        qty: 0.08,
+      },
+      {
+        user: user2,
+        side: "BUY",
+        price: Math.round(currentPrice * 0.96),
+        qty: 0.15,
+      },
+      {
+        user: user2,
+        side: "SELL",
+        price: Math.round(currentPrice * 1.02),
+        qty: 0.08,
+      },
+      {
+        user: user2,
+        side: "SELL",
+        price: Math.round(currentPrice * 1.04),
+        qty: 0.15,
+      },
     ];
 
     console.log("Inserting dummy orders...");
@@ -201,7 +258,9 @@ const seed = async () => {
         value: memberValue,
       });
 
-      console.log(`Placed ${template.side} limit order for ${template.qty} BTC at $${template.price} for user ${template.user.email} (ID: ${orderId})`);
+      console.log(
+        `Placed ${template.side} limit order for ${template.qty} BTC at $${template.price} for user ${template.user.email} (ID: ${orderId})`,
+      );
     }
 
     console.log("Dummy orders successfully seeded!");

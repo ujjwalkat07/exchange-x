@@ -53,7 +53,7 @@ const getWalletBalance = async (
 // Read the best available price from the order book in Redis
 // For BUY orders: best (lowest) ask from the SELL side
 // For SELL orders: best (highest) bid from the BUY side
-//Its only for market orders 
+//Its only for market orders
 const getBestBookPrice = async (
   currencyPair: string,
   orderSide: "BUY" | "SELL",
@@ -68,36 +68,36 @@ const getBestBookPrice = async (
   const best =
     orderSide === "BUY"
       ? await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0)
-      : await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0, { REV: true });
+      : await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0, {
+          REV: true,
+        });
 
   if (!best || best.length === 0) return null;
   return best[0].score;
 };
 
-
 const createOrder = async (
   req: AuthRequest,
   res: Response,
-  orderSide: "BUY" | "SELL"
+  orderSide: "BUY" | "SELL",
 ): Promise<Response> => {
   const uuid = uuidv4();
   const userId = req.user?._id;
   if (!userId) {
-    throw new ApiErrorHandling(HttpCodes.UNAUTHORIZED, "User not authenticated");
+    throw new ApiErrorHandling(
+      HttpCodes.UNAUTHORIZED,
+      "User not authenticated",
+    );
   }
 
-  const {
-    currencyPair,
-    orderType,
-    positionStatus,
-    entryPrice,
-  } = req.body;
+  const { currencyPair, orderType, positionStatus, entryPrice } = req.body;
 
   const currencyPairUpper = String(currencyPair).toUpperCase();
 
   let price: number;
   let walletBalance: number;
-  let walletAsset = orderSide === "BUY" ? "USDT" : currencyPairUpper.replace("USDT", "");
+  let walletAsset =
+    orderSide === "BUY" ? "USDT" : currencyPairUpper.replace("USDT", "");
 
   //to prevent the concurrent order running in parallel due to slow intenet/network it stop the other order to run for 5 seconds
   // const locked = await getLockedBalance(userId.toString(), walletAsset);
@@ -146,7 +146,10 @@ const createOrder = async (
       const body = req.body as IBuyRequestBody;
       orderAmount = Number(body.orderAmount);
       if (!orderAmount || orderAmount <= 0) {
-        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "Amount is required and must be greater than 0");
+        throw new ApiErrorHandling(
+          HttpCodes.BAD_REQUEST,
+          "Amount is required and must be greater than 0",
+        );
       }
       orderQuantity = orderAmount / price;
       balanceToCheck = orderAmount;
@@ -154,7 +157,10 @@ const createOrder = async (
       const body = req.body as ISellRequestBody;
       orderQuantity = Number(body.orderQuantity);
       if (!orderQuantity || orderQuantity <= 0) {
-        throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "Quantity is required and must be greater than 0");
+        throw new ApiErrorHandling(
+          HttpCodes.BAD_REQUEST,
+          "Quantity is required and must be greater than 0",
+        );
       }
       orderAmount = orderQuantity * price;
       balanceToCheck = orderQuantity;
@@ -163,7 +169,9 @@ const createOrder = async (
     if (balanceToCheck > walletBalance) {
       throw new ApiErrorHandling(
         HttpCodes.BAD_REQUEST,
-        orderSide === "BUY" ? "Insufficient USDT balance" : "Insufficient Token balance",
+        orderSide === "BUY"
+          ? "Insufficient USDT balance"
+          : "Insufficient Token balance",
       );
     }
 
@@ -202,8 +210,10 @@ const createOrder = async (
         new ApiResponse(
           HttpCodes.OK,
           placedOrder,
-          orderSide === "BUY" ? "Trade placed successfully" : "Sell order executed"
-        )
+          orderSide === "BUY"
+            ? "Trade placed successfully"
+            : "Sell order executed",
+        ),
       );
   } catch (error) {
     console.error(`Place ${orderSide} order error:`, error);
@@ -231,14 +241,14 @@ const createOrder = async (
 
 export const buyOrder = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   return createOrder(req, res, "BUY");
 };
 
 export const sellOrder = async (
   req: AuthRequest,
-  res: Response
+  res: Response,
 ): Promise<Response> => {
   return createOrder(req, res, "SELL");
 };

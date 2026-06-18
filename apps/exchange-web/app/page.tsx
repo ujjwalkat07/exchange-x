@@ -203,7 +203,6 @@ const page = () => {
         </div>
       </section>
 
-
       <footer className="px-6 py-10 mt-10 border-t border-slate-800">
         <div className="max-w-5xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
@@ -223,10 +222,7 @@ const page = () => {
           </div>
 
           <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-6 text-xs border-t border-slate-800 text-slate-600">
-            <p>
-              © 2026 CryptoExchange Inc. All rights
-              reserved.
-            </p>
+            <p>© 2026 CryptoExchange Inc. All rights reserved.</p>
           </div>
         </div>
       </footer>

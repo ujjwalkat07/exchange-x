@@ -14,9 +14,13 @@ const RestingOrders = () => {
   const [data, setData] = useState<OpenPosition[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cancellingId, setCancellingId] = useState<string | null>(null);
-  
-  const isChanging = useSelector((state: RootState) => state.order.orderCountStatus);
-  const isSocketChanging = useSelector((state: RootState) => state.socket.status);
+
+  const isChanging = useSelector(
+    (state: RootState) => state.order.orderCountStatus,
+  );
+  const isSocketChanging = useSelector(
+    (state: RootState) => state.socket.status,
+  );
   const dispatch = useDispatch();
 
   useEffect(() => {
@@ -71,7 +75,10 @@ const RestingOrders = () => {
         <tbody>
           {data.length === 0 && (
             <tr>
-              <td colSpan={8} className="text-center py-12 text-slate-500 text-sm">
+              <td
+                colSpan={8}
+                className="text-center py-12 text-slate-500 text-sm"
+              >
                 {error || "No resting orders"}
               </td>
             </tr>
@@ -82,8 +89,12 @@ const RestingOrders = () => {
               key={order.orderId}
               className="border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors"
             >
-              <td className="py-3.5 pl-3 font-semibold text-slate-200">{order.currencyPair.toUpperCase()}</td>
-              <td className="py-3.5">{Number(order.orderQuantity).toFixed(6)}</td>
+              <td className="py-3.5 pl-3 font-semibold text-slate-200">
+                {order.currencyPair.toUpperCase()}
+              </td>
+              <td className="py-3.5">
+                {Number(order.orderQuantity).toFixed(6)}
+              </td>
               <td className="py-3.5">${Number(order.entryPrice).toFixed(2)}</td>
               <td className="py-3.5 text-slate-400">{order.orderId}</td>
               <td className="py-3.5 text-slate-400">{order.orderType}</td>
@@ -93,7 +104,13 @@ const RestingOrders = () => {
                 </span>
               </td>
               <td className="py-3.5 font-semibold">
-                <span className={order.orderSide === "BUY" ? "text-emerald-400" : "text-red-400"}>
+                <span
+                  className={
+                    order.orderSide === "BUY"
+                      ? "text-emerald-400"
+                      : "text-red-400"
+                  }
+                >
                   {order.orderSide}
                 </span>
               </td>

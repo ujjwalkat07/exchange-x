@@ -26,10 +26,7 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (
-      error.response?.status === 400 &&
-      !originalRequest._retry
-    ) {
+    if (error.response?.status === 400 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
@@ -38,7 +35,7 @@ api.interceptors.response.use(
           {},
           {
             withCredentials: true,
-          }
+          },
         );
 
         return api(originalRequest);
@@ -48,6 +45,5 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
-

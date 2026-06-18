@@ -43,7 +43,6 @@ const WalletContainer = () => {
     fetchBalance();
   }, [asset, isSocketChanging, dispatch]);
 
-
   return (
     <>
       <div className="flex gap-3">

@@ -23,7 +23,9 @@ const LivePrices = () => {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const ws = new window.WebSocket("wss://fstream.binance.com/market/stream?streams=!markPrice@arr");
+    const ws = new window.WebSocket(
+      "wss://fstream.binance.com/market/stream?streams=!markPrice@arr",
+    );
 
     ws.onopen = () => setConnected(true);
 
@@ -54,7 +56,7 @@ const LivePrices = () => {
 
   const filtered = search
     ? sortedPrices.filter((item) =>
-        item.s.toLowerCase().includes(search.toLowerCase())
+        item.s.toLowerCase().includes(search.toLowerCase()),
       )
     : sortedPrices;
 

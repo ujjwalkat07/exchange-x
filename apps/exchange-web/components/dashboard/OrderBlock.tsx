@@ -21,7 +21,9 @@ const OrderBlock = () => {
 
   const dispatch = useDispatch();
   const params = useParams();
-  const asset = String(params.currency || "BTCUSDT").toUpperCase().replace("USDT", "");
+  const asset = String(params.currency || "BTCUSDT")
+    .toUpperCase()
+    .replace("USDT", "");
 
   const walletData = useSelector((state: RootState) => state.wallet.data);
   const usdtBalance = Number(walletData?.asset1 || 0).toFixed(3);
@@ -30,7 +32,9 @@ const OrderBlock = () => {
   // Subscribe to live ticker to pre-populate limit price
   useEffect(() => {
     const symbolUpper = String(params.currency || "BTCUSDT").toUpperCase();
-    const ws = new WebSocket(`wss://fstream.binance.com/market/stream?streams=${symbolUpper.toLowerCase()}@ticker`);
+    const ws = new WebSocket(
+      `wss://fstream.binance.com/market/stream?streams=${symbolUpper.toLowerCase()}@ticker`,
+    );
 
     ws.onmessage = (event: MessageEvent) => {
       try {
@@ -129,7 +133,7 @@ const OrderBlock = () => {
         <div className="w-full py-5 px-3 text-white bg-[#0b0e11] mt-2 rounded-sm border border-slate-800">
           <h1 className="text-sm font-semibold">Exchange / Spot</h1>
           <hr className="border-slate-800 mt-1" />
-          
+
           {/* Buy / Sell selector */}
           <div className="text-white text-xs flex justify-around items-center border border-slate-800 mt-5 rounded-sm overflow-hidden">
             <div className="bg-emerald-500/10 text-emerald-400 border-r border-slate-800 py-3 flex-1 text-center font-bold">
@@ -186,7 +190,9 @@ const OrderBlock = () => {
                   value={limitPrice || ""}
                   onChange={(e) => setLimitPrice(Number(e.target.value))}
                 />
-                <p className="text-slate-400 font-semibold p-3 shrink-0">USDT</p>
+                <p className="text-slate-400 font-semibold p-3 shrink-0">
+                  USDT
+                </p>
               </div>
             )}
 
@@ -207,7 +213,7 @@ const OrderBlock = () => {
             <p>Available Balance</p>
             <p className="text-slate-300 font-semibold">{usdtBalance} USDT</p>
           </div>
-          
+
           {error && (
             <div className="mt-3 text-center text-xs text-red-400 border border-red-500/20 bg-red-500/5 py-2.5 rounded-sm">
               {error}
@@ -292,7 +298,9 @@ const OrderBlock = () => {
                   value={limitPrice || ""}
                   onChange={(e) => setLimitPrice(Number(e.target.value))}
                 />
-                <p className="text-slate-400 font-semibold p-3 shrink-0">USDT</p>
+                <p className="text-slate-400 font-semibold p-3 shrink-0">
+                  USDT
+                </p>
               </div>
             )}
 
@@ -305,7 +313,9 @@ const OrderBlock = () => {
                 value={qty || ""}
                 onChange={(e) => setQty(Number(e.target.value))}
               />
-              <p className="text-slate-400 font-semibold p-3 shrink-0">{asset}</p>
+              <p className="text-slate-400 font-semibold p-3 shrink-0">
+                {asset}
+              </p>
             </div>
           </div>
 

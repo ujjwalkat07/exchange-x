@@ -16,13 +16,12 @@ const getAccessAndRefreshToken = async (userId: string) => {
 
     return { accessToken, refreshToken };
   } catch (error) {
-   
     if (error instanceof ApiErrorHandling) {
       throw new ApiErrorHandling(error.statusCode, error.message);
     }
     throw new ApiErrorHandling(
       HttpCodes.INTERNAL_SERVER_ERROR,
-      "Internal Server Error"
+      "Internal Server Error",
     );
   }
 };
