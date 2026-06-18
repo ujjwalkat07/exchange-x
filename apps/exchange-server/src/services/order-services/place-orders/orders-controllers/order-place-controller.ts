@@ -37,18 +37,18 @@ const getWalletBalance = async (
 
   return Number(wallet);
 };
-const getLockedBalance = async (userId: string, asset: string): Promise<boolean> => {
-  const result = await Redis.getClient().set(
-    `lock:wallet:${userId}:${asset}`,
-    "1",
-    { NX: true, PX: 100},
-  );
-  return result === "OK";
-};
+// const getLockedBalance = async (userId: string, asset: string): Promise<boolean> => {
+//   const result = await Redis.getClient().set(
+//     `lock:wallet:${userId}:${asset}`,
+//     "1",
+//     { NX: true, PX: 100},
+//   );
+//   return result === "OK";
+// };
 
-const releaseLockedBalance = async (userId: string, asset: string): Promise<void> => {
-  await Redis.getClient().del(`lock:wallet:${userId}:${asset}`);
-};
+// const releaseLockedBalance = async (userId: string, asset: string): Promise<void> => {
+//   await Redis.getClient().del(`lock:wallet:${userId}:${asset}`);
+// };
 
 // Read the best available price from the order book in Redis
 // For BUY orders: best (lowest) ask from the SELL side

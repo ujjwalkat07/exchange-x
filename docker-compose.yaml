@@ -50,16 +50,6 @@ services:
     volumes:
       - redis_data:/data
 
-  redis-commander:
-    image: rediscommander/redis-commander:latest
-    container_name: redis-commander
-    environment:
-      - REDIS_HOSTS=local:redis:6379
-    ports:
-      - 8081:8081
-    depends_on:
-      - redis
-
 volumes:
   redis_data:
   mongo_data:

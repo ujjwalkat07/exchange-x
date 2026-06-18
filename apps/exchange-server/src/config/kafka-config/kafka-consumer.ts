@@ -20,16 +20,16 @@ class KafkaConsumer {
     await this.consumer.subscribe({ topic, fromBeginning: true });
   }
 
-  async consume(callback: (kafkaMessage: IOrder) => void): Promise<void> {
+  async consume(callback: (kafkaMessage: IOrder) => Promise<void> | void): Promise<void> {
     await this.consumer.run({
       autoCommit: true,
       eachMessage: async ({ message }) => {
         if (!message.value) return;
         try {
           const parsedMessage = JSON.parse(message.value.toString());
-          callback(parsedMessage);
+          await callback(parsedMessage);
         } catch (err) {
-          console.error("Invalid JSON message", err);
+          console.error("Error processing message in Kafka consumer:", err);
         }
       },
     });

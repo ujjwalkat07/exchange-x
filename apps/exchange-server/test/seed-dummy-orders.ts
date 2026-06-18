@@ -7,12 +7,12 @@ dotenv.config({ path: "./.env" });
 
 import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
-import { Redis } from "./config/redis-config/redis-connection";
-import { Auth } from "./services/auth-services/auth-model";
-import { Wallet } from "./services/wallet-services/wallet-model";
-import { Order } from "./services/order-services/place-orders/order-model";
-import { getLatestPrice } from "./websockets/price-fetch";
-import { config } from "./config/env-config/config";
+import { Redis } from "../src/config/redis-config/redis-connection";
+import { Auth } from "../src/services/auth-services/auth-model";
+import { Wallet } from "../src/services/wallet-services/wallet-model";
+import { Order } from "../src/services/order-services/place-orders/order-model";
+import { getLatestPrice } from "../src/websockets/price-fetch";
+import { config } from "../src/config/env-config/config";
 
 const seed = async () => {
   try {
