@@ -134,6 +134,16 @@ Under peak load, the system successfully processed **156,380 orders** in 60 seco
 - **Data Received:** 105 MB (1.7 MB/s)
 - **Checks Succeeded:** 156,380 / 156,380 (100.00%)
 
+### 📸 Benchmark Run Screenshots
+
+Here are the terminal execution screenshots from the k6 load test:
+
+[![k6 Benchmark Execution and Thresholds](https://i.ibb.co/Wv2WZW76/test1.png)](https://ibb.co/chrc0cR1)
+*Figure 1: k6 Execution Configuration, Scenarios, and Threshold Pass Status*
+
+[![k6 Benchmark Detailed Metrics and Results](https://i.ibb.co/VpS2wWQp/test2.png)](https://ibb.co/rf64dGcf)
+*Figure 2: k6 Run Total Results, HTTP, Execution, and Network Metrics*
+
 ---
 
 ## 🚀 Getting Started
