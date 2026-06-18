@@ -54,6 +54,31 @@ const Login = () => {
           <p className="text-sm mt-1 text-slate-400">Sign in to your account</p>
         </div>
 
+        {/* Demo Credentials Helper */}
+        <div className="mb-6 p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-slate-400 font-medium">Demo Account:</span>
+            <button
+              onClick={() => {
+                setEmail("admin@gmail.com");
+                setPassword("admin");
+              }}
+              type="button"
+              className="text-blue-400 hover:text-blue-300 font-semibold cursor-pointer transition-colors"
+            >
+              Fill Credentials
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-slate-500 font-mono text-[11px]">
+            <div>
+              <span className="text-slate-600">Email:</span> <span className="text-slate-300">admin@gmail.com</span>
+            </div>
+            <div>
+              <span className="text-slate-600">Password:</span> <span className="text-slate-300">admin</span>
+            </div>
+          </div>
+        </div>
+
         <div className="flex flex-col gap-3">
           <div>
             <label className="block text-xs font-medium mb-1.5 text-slate-400">

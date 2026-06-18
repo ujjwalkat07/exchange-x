@@ -89,7 +89,7 @@ const OpenOrder = () => {
 
   return (
     <div className="w-full overflow-x-auto mt-5">
-      <table className="w-full min-w-[1100px] text-xs font-mono text-slate-200">
+      <table className="w-full min-w-[1100px] text-xs text-slate-200">
         <thead>
           <tr className="text-slate-500 border-b border-slate-800 text-left">
             <th className="pb-3 pl-3 font-medium">Symbol</th>
@@ -144,7 +144,7 @@ const OpenOrder = () => {
                 {/* Symbol Tag */}
                 <td className="py-3.5 pl-3">
                   <span className="bg-blue-600/10 text-blue-400 border border-blue-600/30 px-2 py-0.5 rounded text-[10px] font-bold font-sans">
-                    CRYPTO:{symbolUpper}
+                    {symbolUpper}
                   </span>
                 </td>
 
