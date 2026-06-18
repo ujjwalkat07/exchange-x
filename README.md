@@ -2,8 +2,8 @@
 
 Welcome to **Exchange-X**, a feature-rich, high-performance cryptocurrency exchange platform. This project is structured as a monorepo using **Turborepo** to orchestrate a modern React/Next.js frontend and a Node.js/Express/Kafka/Redis backend trading engine.
 
-[![Exchange Web Dashboard Mockup](https://iili.io/qFBvK8v.md.png)](https://freeimage.host/i/qFBvK8v)
-[![Exchange Web Analytics Mockup](https://iili.io/qFB8Yga.md.png)](https://freeimage.host/i/qFB8Yga)
+[![Exchange Web Dashboard Mockup](https://i.ibb.co/39cpKjPp/1.png)](https://ibb.co/tTDqRv1q)
+[![Exchange Web Analytics Mockup](https://i.ibb.co/hJ2PS62G/2.png)](https://ibb.co/cS2GjB2W)
 
 ---
 

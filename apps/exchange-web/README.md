@@ -1,4 +1,14 @@
+# Exchange-X Web Dashboard
+
+The Next.js-powered trading frontend for Exchange-X.
+
+[![Exchange Web Dashboard Mockup](https://i.ibb.co/39cpKjPp/1.png)](https://ibb.co/tTDqRv1q)
+[![Exchange Web Analytics Mockup](https://i.ibb.co/hJ2PS62G/2.png)](https://ibb.co/cS2GjB2W)
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/create-next-app).
+
 
 ## Getting Started
 
