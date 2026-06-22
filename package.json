@@ -1,7 +1,7 @@
 {
   "name": "exchange-x",
   "private": true,
-  "scripts": {
+    "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
