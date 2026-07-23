@@ -1,32 +1,7 @@
-// components/Providers.tsx
 "use client";
-import { setAuthenticated } from "@/store/features/authSlice";
-import type { AppDispatch } from "@/store/store";
-import { useEffect } from "react";
-import { Provider, useDispatch } from "react-redux";
-import { api } from "../lib/axios";
+import { Provider } from "react-redux";
 import { store } from "./store";
-
-function AuthHydrator({ payload }: { payload: string | null }) {
-  const dispatch = useDispatch<AppDispatch>();
-
-  useEffect(() => {
-    dispatch(setAuthenticated(Boolean(payload)));
-
-    const verify = async () => {
-      try {
-        await api.post("/api/auth/verify-token");
-        dispatch(setAuthenticated(true));
-      } catch {
-        dispatch(setAuthenticated(false));
-      }
-    };
-
-    verify();
-  }, [dispatch, payload]);
-
-  return null;
-}
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function Providers({
   children,
@@ -37,8 +12,8 @@ export default function Providers({
 }) {
   return (
     <Provider store={store}>
-      <AuthHydrator payload={payload} />
-      {children}
+      <AuthProvider initialAuthToken={payload}>{children}</AuthProvider>
     </Provider>
   );
 }
+

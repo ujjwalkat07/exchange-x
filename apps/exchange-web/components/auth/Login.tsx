@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
-import { api } from "@/lib/axios";
+import { useAuth } from "@/context/AuthContext";
 import { IoMdLogIn } from "react-icons/io";
 import { CiLogin } from "react-icons/ci";
 import { RiLoader2Fill } from "react-icons/ri";
@@ -17,6 +17,7 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { login } = useAuth();
 
   const LoginHandler = async () => {
     if (!email || !password) {
@@ -26,7 +27,7 @@ const Login = () => {
     setError("");
     setLoading(true);
     try {
-      await api.post("/api/auth/login", { email, password });
+      await login(email, password);
       router.push("/in/spot/btcusdt");
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -40,6 +41,7 @@ const Login = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-black text-slate-50">

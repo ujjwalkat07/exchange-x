@@ -1,13 +1,15 @@
 "use client";
 
-import { RootState } from "@/store/store";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 import { useState } from "react";
-import { useSelector } from "react-redux";
 import Logout from "../auth/Logout";
+
 
 const NavBar = () => {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isAuthenticated } = useAuth();
+
 
   const navLinks = [
     { label: "Dashboard", href: "/in/spot/btcusdt" },
@@ -15,11 +17,8 @@ const NavBar = () => {
     { label: "Market", href: "/in/market/btcusdt" },
   ];
 
-  const isLoggedIn = useSelector((state: RootState) =>
-    Boolean(state.auth.data),
-  );
-  console.log("isLoggedIn:", isLoggedIn);
-  const showAuthButtons = !isLoggedIn;
+  const showAuthButtons = !isAuthenticated;
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-slate-800 backdrop-blur-xl">

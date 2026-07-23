@@ -1,34 +1,36 @@
 "use client";
+
+import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/axios";
-import { useLayoutEffect, useState } from "react";
-import axios from "axios";
+import { useEffect } from "react";
+import { RiLoader2Fill } from "react-icons/ri";
 
 export default function ProtectedLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
-  const [error, setError] = useState("");
 
-  useLayoutEffect(() => {
-    const verifyToken = async () => {
-      try {
-        await api.post("/api/auth/verify-token");
-      } catch (error) {
-        if (axios.isAxiosError(error)) {
-          router.push("/in/auth/login");
-          setError(
-            error.response?.data?.message || "Login failed. Please try again.",
-          );
-        } else {
-          setError("Something went wrong. Please try again.");
-        }
-      }
-    };
-    verifyToken();
-  }, [router]);
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/in/auth/login");
+    }
+  }, [isAuthenticated, isLoading, router]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-[calc(100vh-3.5rem)] flex flex-col items-center justify-center bg-black text-slate-50">
+        <RiLoader2Fill className="text-4xl animate-spin text-blue-500 mb-3" />
+        <p className="text-sm font-medium text-slate-400">Verifying authentication...</p>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return <>{children}</>;
 }
