@@ -1,11 +1,13 @@
 # Exchange-X: High-Performance Crypto Exchange
 
-[![GitHub Repo stars](https://img.shields.io/github/stars/ujjwalkat07/exchange-x?style=for-the-badge)](https://github.com/ujjwalkat07/exchange-x/stargazers)
-[![GitHub forks](https://img.shields.io/github/forks/ujjwalkat07/exchange-x?style=for-the-badge)](https://github.com/ujjwalkat07/exchange-x/network/members)
-[![GitHub issues](https://img.shields.io/github/issues/ujjwalkat07/exchange-x?style=for-the-badge)](https://github.com/ujjwalkat07/exchange-x/issues)
-[![GitHub pull requests](https://img.shields.io/github/issues-pr/ujjwalkat07/exchange-x?style=for-the-badge)](https://github.com/ujjwalkat07/exchange-x/pulls)
-[![Last Commit](https://img.shields.io/github/last-commit/ujjwalkat07/exchange-x?style=for-the-badge)](https://github.com/ujjwalkat07/exchange-x/commits/main)
-[![Live Demo](https://img.shields.io/badge/Live-Demo-0A7D91?style=for-the-badge&logo=globe)](https://web-exchange-x.onrender.com)
+[![Next.js](https://img.shields.io/badge/Next.js-000000?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.com/)
+[![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Kafka](https://img.shields.io/badge/Apache%20Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)](https://kafka.apache.org/)
 
 Welcome to **Exchange-X**, a feature-rich, high-performance cryptocurrency exchange platform. This project is structured as a monorepo using **Turborepo** to orchestrate a modern React/Next.js frontend and a Node.js/Express/Kafka/Redis backend trading engine.
 
