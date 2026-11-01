@@ -1,143 +1,367 @@
 "use client";
 
+import * as React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  ExternalLink
+  Activity,
+  ArrowRight,
+  ArrowUpRight,
+  BarChart3,
+  ExternalLink,
+  Lock,
+  Radio,
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+  Zap,
 } from "lucide-react";
-const page = () => {
+
+interface BinanceTickerData {
+  s: string; // Symbol (e.g., BTCUSDT)
+  c: string; // Last price
+  p: string; // 24h Price change
+  P: string; // 24h Price change percent
+  h: string; // 24h High
+  l: string; // 24h Low
+  v: string; // 24h Volume (base asset)
+  q: string; // 24h Volume (quote asset in USDT)
+}
+
+interface MarketConfig {
+  symbol: string;
+  streamKey: string;
+  name: string;
+  href: string;
+  defaultPrice?: number;
+  defaultChange?: number;
+  defaultVol?: string;
+}
+
+const MARKETS: MarketConfig[] = [
+  {
+    symbol: "BTC/USDT",
+    streamKey: "BTCUSDT",
+    name: "Bitcoin",
+    defaultPrice: 77974.5,
+    defaultChange: 0.68,
+    defaultVol: "$3.72B",
+    href: "/in/spot/btcusdt",
+  },
+  {
+    symbol: "ETH/USDT",
+    streamKey: "ETHUSDT",
+    name: "Ethereum",
+    defaultPrice: 2842.15,
+    defaultChange: 1.38,
+    defaultVol: "$1.82B",
+    href: "/in/spot/ethusdt",
+  },
+  {
+    symbol: "SOL/USDT",
+    streamKey: "SOLUSDT",
+    name: "Solana",
+    defaultPrice: 184.6,
+    defaultChange: 3.42,
+    defaultVol: "$942.15M",
+    href: "/in/spot/solusdt",
+  },
+  {
+    symbol: "BNB/USDT",
+    streamKey: "BNBUSDT",
+    name: "BNB Chain",
+    defaultPrice: 612.4,
+    defaultChange: 0.45,
+    defaultVol: "$510.30M",
+    href: "/in/spot/bnbusdt",
+  },
+  {
+    symbol: "XRP/USDT",
+    streamKey: "XRPUSDT",
+    name: "Ripple",
+    defaultPrice: 0.584,
+    defaultChange: 2.15,
+    defaultVol: "$420.50M",
+    href: "/in/spot/xrpusdt",
+  },
+  {
+    symbol: "SAND/USDT",
+    streamKey: "SANDUSDT",
+    name: "SAND",
+    defaultPrice: 0.584,
+    defaultChange: 2.15,
+    defaultVol: "$420.50M",
+    href: "/in/spot/xrpusdt",
+  },
+  {
+    symbol: "FET/USDT",
+    streamKey: "FETUSDT",
+    name: "Fetch AI",
+    defaultPrice: 0.584,
+    defaultChange: 2.15,
+    defaultVol: "$420.50M",
+    href: "/in/spot/xrpusdt",
+  },
+  {
+    symbol: "BAT/USDT",
+    streamKey: "BATUSDT",
+    name: "Basic Attention Token",
+    defaultPrice: 0.584,
+    defaultChange: 2.15,
+    defaultVol: "$420.50M",
+    href: "/in/spot/xrpusdt",
+  },
+];
+
+const formatPrice = (val?: string | number) => {
+  if (val === undefined || val === null || val === "") return "--";
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return "--";
+  if (num >= 1000) {
+    return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (num >= 1) {
+    return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+  return "$" + num.toFixed(4);
+};
+
+const formatVol = (val?: string | number) => {
+  if (!val) return "--";
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return "--";
+  if (num >= 1e9) {
+    return "$" + (num / 1e9).toFixed(2) + "B";
+  }
+  return "$" + (num / 1e6).toFixed(2) + "M";
+};
+
+export default function LandingPage() {
+  const [tickers, setTickers] = React.useState<Record<string, BinanceTickerData>>({});
+  const [priceFlash, setPriceFlash] = React.useState<Record<string, "up" | "down" | null>>({});
+  const [isConnected, setIsConnected] = React.useState(false);
+  const [tickCount, setTickCount] = React.useState(0);
+  const prevPriceMap = React.useRef<Map<string, number>>(new Map());
+
+  // ── Binance WebSocket Connection ──────────────────────────────────────────
+  React.useEffect(() => {
+    let ws: WebSocket | null = null;
+    let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
+    let isMounted = true;
+
+    const streams = MARKETS.map((m) => `${m.streamKey.toLowerCase()}@ticker`).join("/");
+    const wsUrl = `wss://fstream.binance.com/market/stream?streams=${streams}`;
+
+    const connectWebSocket = () => {
+      try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+          if (!isMounted) return;
+          setIsConnected(true);
+        };
+
+        ws.onmessage = (event: MessageEvent) => {
+          if (!isMounted) return;
+          try {
+            const payload = JSON.parse(event.data);
+            const data: BinanceTickerData = payload?.data;
+            if (!data || !data.s) return;
+
+            const symbol = data.s.toUpperCase();
+            const currentPrice = parseFloat(data.c);
+
+            setTickers((prev) => ({
+              ...prev,
+              [symbol]: data,
+            }));
+
+            setTickCount((prev) => prev + 1);
+
+            const prevPrice = prevPriceMap.current.get(symbol);
+            if (prevPrice !== undefined && currentPrice !== prevPrice) {
+              const dir = currentPrice > prevPrice ? "up" : "down";
+              setPriceFlash((prev) => ({ ...prev, [symbol]: dir }));
+              setTimeout(() => {
+                if (isMounted) {
+                  setPriceFlash((prev) => ({ ...prev, [symbol]: null }));
+                }
+              }, 600);
+            }
+            prevPriceMap.current.set(symbol, currentPrice);
+          } catch (err) {
+            console.error("Binance WS message parsing error:", err);
+          }
+        };
+
+        ws.onerror = (err) => {
+          console.warn("Binance WebSocket error:", err);
+        };
+
+        ws.onclose = () => {
+          if (!isMounted) return;
+          setIsConnected(false);
+          reconnectTimeout = setTimeout(() => {
+            if (isMounted) connectWebSocket();
+          }, 3000);
+        };
+      } catch (err) {
+        console.warn("Binance WebSocket connection error:", err);
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      isMounted = false;
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (ws) ws.close();
+    };
+  }, []);
+
+  const btcTicker = tickers["BTCUSDT"];
+  const btcPrice = btcTicker ? parseFloat(btcTicker.c) : 77974.5;
+  const btcChangePercent = btcTicker ? parseFloat(btcTicker.P) : 0.68;
+  const btcChangeAmount = btcTicker ? parseFloat(btcTicker.p) : 522.6;
+  const btcVol = btcTicker ? formatVol(btcTicker.q) : "$3.72B";
+  const btcHigh = btcTicker ? formatPrice(btcTicker.h) : "$78,231.30";
+  const btcLow = btcTicker ? formatPrice(btcTicker.l) : "$77,333.40";
+
   const steps = [
     {
       num: "01",
       title: "Create an Account",
-      desc: "Sign up in minutes with just your email. No lengthy verification to get started.",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-        </svg>
-      ),
+      desc: "Sign up in 30 seconds with email. Access real-time paper trading or live markets with zero friction.",
+      icon: <Lock className="w-4 h-4" />,
     },
     {
       num: "02",
-      title: "Deposit Funds",
-      desc: "Securely transfer crypto to your wallet. Supports 50+ networks with instant confirmation.",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18-3a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" />
-        </svg>
-      ),
+      title: "Deposit Crypto or Fiat",
+      desc: "Instant multi-network deposit confirmations across 50+ blockchains including Bitcoin, Ethereum, and Solana.",
+      icon: <Wallet className="w-4 h-4" />,
     },
     {
       num: "03",
-      title: "Start Trading",
-      desc: "Access 400+ pairs with advanced charts, limit orders, and real-time market data.",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-        >
-          <path d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
-        </svg>
-      ),
+      title: "Trade with Precision",
+      desc: "Execute spot trades with TradingView charts, limit & market orders, or automate via high-speed APIs.",
+      icon: <TrendingUp className="w-4 h-4" />,
     },
   ];
 
-  const stats = [
-    { label: "Trading Volume", value: "$4.2B", sub: "in the last 24 hours" },
-    { label: "Active Users", value: "2.8M", sub: "traders worldwide" },
-    { label: "Trading Pairs", value: "400+", sub: "across major chains" },
-    { label: "Uptime", value: "99.9%", sub: "platform reliability" },
-  ];
-
   return (
-    <div className="min-h-screen font-sans text-sm mt-2 bg-black">
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-cover bg-center opacity-10 bg-[url('/close-up-hand-bitcoin-concept.jpg')]" />
-
-        <div className="relative max-w-4xl mx-auto px-6 pt-20 pb-24 text-center">
-          <div className="inline-flex items-center gap-2 mb-6">
-            <span className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium bg-slate-800 text-slate-400 border border-slate-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live markets · 400+ pairs
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-foreground selection:text-background">
+      {/* ── Live Market Ticker Tape ─────────────────────────────────────────── */}
+      <div className="border-b border-border/80 bg-muted/20 backdrop-blur-md overflow-x-auto no-scrollbar py-2 px-4 sm:px-6">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 text-xs whitespace-nowrap">
+          <div className="flex items-center gap-2 text-muted-foreground font-mono">
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+              }`}
+            />
+            <span className="text-[11px] font-semibold text-foreground">
+              {isConnected ? "BINANCE WS LIVE" : "CONNECTING..."}
             </span>
+            <span className="text-zinc-600">|</span>
           </div>
 
-          <h1 className="text-4xl md:text-6xl font-bold leading-tight mb-5 text-white">
-            The Future of
-            <br />
-            <span className="text-gray-400">Crypto Trading</span> is Here
-          </h1>
+          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-0.5">
+            {MARKETS.map((m) => {
+              const t = tickers[m.streamKey];
+              const price = t ? formatPrice(t.c) : formatPrice(m.defaultPrice);
+              const change = t ? parseFloat(t.P) : (m.defaultChange ?? 0);
+              const isPositive = change >= 0;
+              const flash = priceFlash[m.streamKey];
 
-          <p className="text-base mb-8 max-w-xl mx-auto leading-relaxed text-slate-400">
-            Trade 400+ cryptocurrencies with institutional-grade security,
-            sub-millisecond execution, and the deepest liquidity on the market.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/in/auth/signup"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold transition-all bg-slate-50 text-slate-950"
-            >
-              Start Trading Free
-              <svg
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-              </svg>
-            </Link>
-            <Link
-              href="#markets"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-medium transition-colors bg-slate-800 text-slate-50 border border-slate-700"
-            >
-              View Markets
-            </Link>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-6 mt-10 text-xs text-slate-600">
-            {[
-              "SOC 2 Certified",
-              "256-bit Encryption",
-              "$350M Insurance Fund",
-              "Regulated Exchange",
-            ].map((item) => (
-              <span key={item} className="flex items-center gap-1.5">
-                <svg
-                  className="w-3.5 h-3.5 text-emerald-500"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.5"
+              return (
+                <Link
+                  key={m.streamKey}
+                  href={m.href}
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
                 >
-                  <path d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {item}
-              </span>
-            ))}
+                  <span className="font-semibold text-foreground font-mono">{m.symbol}</span>
+                  <span
+                    className={`font-mono transition-colors duration-300 ${
+                      flash === "up"
+                        ? "text-emerald-400 font-bold"
+                        : flash === "down"
+                        ? "text-rose-400 font-bold"
+                        : "text-zinc-200"
+                    }`}
+                  >
+                    {price}
+                  </span>
+                  <span
+                    className={`font-mono text-[11px] px-1.5 py-0.2 rounded font-medium ${
+                      isPositive
+                        ? "text-emerald-400 bg-emerald-500/10"
+                        : "text-rose-400 bg-rose-500/10"
+                    }`}
+                  >
+                    {isPositive ? "+" : ""}
+                    {change.toFixed(2)}%
+                  </span>
+                </Link>
+              );
+            })}
           </div>
+
+          <div className="hidden lg:flex items-center gap-2 text-muted-foreground text-[11px] font-mono">
+            <span>Updates: {tickCount.toLocaleString()}</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Hero Section ────────────────────────────────────────────────────── */}
+      <section id="overview" className="pt-16 pb-10 sm:pt-20 sm:pb-14 max-w-5xl mx-auto px-4 sm:px-6 text-center">
+        {/* Release / Status Tag */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-muted/30 text-xs text-muted-foreground mb-6">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Binance Real-Time Feeds · Sub-millisecond Execution · 400+ Pairs</span>
+        </div>
+
+        {/* Headline */}
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.15] max-w-4xl mx-auto">
+          The high-performance crypto exchange for professional traders.
+        </h1>
+
+        {/* Subhead */}
+        <p className="mt-5 max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground leading-relaxed">
+          Trade Bitcoin, Ethereum, and 400+ crypto pairs with sub-microsecond matching,
+          deep order books, and live Binance streaming price feeds.
+        </p>
+
+        {/* CTA Actions */}
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <Link
+            href="/in/auth/signup"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-foreground text-background font-medium text-sm hover:opacity-90 transition-all shadow-sm"
+          >
+            <span>Start Trading Free</span>
+            <ArrowRight className="h-4 w-4" />
+          </Link>
+
+          <Link
+            href="/in/spot/btcusdt"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-md border border-border bg-card hover:bg-muted/60 font-medium text-sm text-foreground transition-colors"
+          >
+            <Zap className="h-4 w-4 text-emerald-400" />
+            <span>Live Terminal</span>
+          </Link>
+
+          <Link
+            href="/in/market/btcusdt"
+            className="flex items-center gap-2 px-4 py-2.5 rounded-md border border-border bg-card hover:bg-muted/60 font-medium text-sm text-foreground transition-colors"
+          >
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            <span>Explore Markets</span>
+          </Link>
         </div>
       </section>
 
-      <section id="dashboard-preview" className="pb-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">
-        {/* Application Window Frame */}
-        <div className="rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+      {/* ── Main Showcase with Real-Time Highlights Strip (HERO IMAGE) ─────── */}
+      <section id="dashboard-preview" className="pb-16 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+        <div className="rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
           {/* Window Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">
@@ -145,169 +369,184 @@ const page = () => {
               <span className="h-3 w-3 rounded-full bg-border" />
               <span className="h-3 w-3 rounded-full bg-border" />
               <span className="ml-2 text-xs font-medium text-muted-foreground hidden sm:inline-block">
-                asi-telemetry.io/analytics · Live Dashboard Statistics
+                cryptoexchange.io/spot/btcusdt · Live Spot Order Book &amp; TradingView Charts
               </span>
             </div>
 
             <div className="flex items-center gap-3">
-
+              <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-mono">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Binance WS: {formatPrice(btcPrice)}</span>
+              </span>
               <Link
-                href="/dashboard"
-                className="text-xs text-foreground font-medium hover:underline flex items-center gap-1"
+                href="/in/spot/btcusdt"
+                className="text-xs text-foreground font-medium hover:underline flex items-center gap-1 border-l border-border pl-3"
               >
-                <span>Open in App</span>
+                <span>Open in Terminal</span>
                 <ExternalLink className="h-3 w-3" />
               </Link>
             </div>
           </div>
 
-          {/* Screenshot Image Container: dynamically switches between Light and Dark mode */}
-          <div className="relative w-full aspect-[1917/1008] bg-muted/20">
-            {/* Light Mode Dashboard Screenshot */}
-            <div className="absolute inset-0 block dark:hidden">
-              <Image
-                src="/image.png"
-                alt="ASI Telemetry Dashboard Overview - Tool Monitoring (Light Theme)"
-                fill
-                priority
-                className="object-cover object-top"
-                sizes="(max-width: 1200px) 100vw, 1200px"
-              />
-            </div>
-            {/* Dark Mode Dashboard Screenshot */}
-            <div className="absolute inset-0 hidden dark:block">
-              <Image
-                src="/image.png"
-                alt="ASI Telemetry Dashboard Overview - LLM Monitoring (Dark Theme)"
-                fill
-                priority
-                className="object-cover object-top"
-                sizes="(max-width: 1200px) 100vw, 1200px"
-              />
-            </div>
+          {/* Screenshot Image Container */}
+          <div className="relative w-full aspect-[16/9] sm:aspect-[1917/1008] bg-zinc-950 overflow-hidden">
+            <Image
+              src="/image.png"
+              alt="CryptoExchange Professional Trading Interface - Spot Orderbook, Charts and Positions"
+              fill
+              priority
+              className="object-cover object-top"
+              sizes="(max-width: 1200px) 100vw, 1200px"
+            />
           </div>
 
-          {/* Highlights Footer Strip */}
-          {/* <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border divide-y sm:divide-y-0 sm:divide-x divide-border bg-muted/10 text-left">
-            <div className="p-4 space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">Traces & Runs Tracked</div>
-              <div className="text-xl font-bold font-mono text-foreground">157</div>
-              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">ClickHouse Synced</div>
-            </div>
-            <div className="p-4 space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">Total Tokens</div>
-              <div className="text-xl font-bold font-mono text-foreground">63,325</div>
-              <div className="text-[11px] text-muted-foreground">Prompt: 45k · Completion: 18k</div>
-            </div>
-            <div className="p-4 space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">Recorded Cost</div>
-              <div className="text-xl font-bold font-mono text-foreground">$0.0399</div>
-              <div className="text-[11px] text-muted-foreground">Multi-Model Inference</div>
-            </div>
-            <div className="p-4 space-y-1">
-              <div className="text-xs text-muted-foreground font-medium">Success Rate</div>
-              <div className="text-xl font-bold font-mono text-foreground">99.4%</div>
-              <div className="text-[11px] text-muted-foreground">156 Successful / 1 Errored</div>
-            </div>
-          </div> */}
+      
         </div>
       </section>
 
-      <div className="border-t border-b border-slate-800">
-        <div className="max-w-5xl mx-auto grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-800">
-          {stats.map((s, i) => (
-            <div key={i} className="px-8 py-6 text-center">
-              <p className="text-2xl font-bold tracking-tight text-slate-50">
-                {s.value}
-              </p>
-              <p className="text-xs font-medium mt-0.5 text-slate-400">
-                {s.label}
-              </p>
-              <p className="text-xs mt-0.5 text-slate-600">{s.sub}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <section className="py-20 px-6 border-t border-slate-800">
-        <div className="max-w-5xl mx-auto">
-          <div className="text-center mb-12">
-            <p className="text-xs font-medium mb-2 text-slate-600">
-              HOW IT WORKS
-            </p>
-            <h2 className="text-2xl font-bold tracking-tight text-slate-50">
-              Get started in 3 easy steps
+      {/* ── Featured Markets with Live Binance WebSocket Prices ────────────── */}
+      <section className="py-12 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+          <div>
+           
+            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+              Featured Markets
             </h2>
-            <p className="mt-2 text-sm text-slate-400">
-              From sign-up to first trade in under 5 minutes.
+            <p className="text-sm text-muted-foreground mt-1">
+              Real-time spot prices, 24h market volume, and instant orderbook execution.
             </p>
           </div>
+          <Link
+            href="/in/market/btcusdt"
+            className="text-xs font-medium text-foreground hover:underline inline-flex items-center gap-1 self-start sm:self-auto"
+          >
+            <span>View all 400+ pairs</span>
+            <ArrowRight className="h-3 w-3" />
+          </Link>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {steps.map((step, i) => (
-              <div
-                key={i}
-                className="relative rounded-lg p-6 transition-colors bg-slate-950 border border-slate-800"
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {MARKETS.map((m) => {
+            const ticker = tickers[m.streamKey];
+            const price = ticker ? formatPrice(ticker.c) : formatPrice(m.defaultPrice);
+            const change = ticker ? parseFloat(ticker.P) : (m.defaultChange ?? 0);
+            const isPositive = change >= 0;
+            const vol = ticker ? formatVol(ticker.q) : (m.defaultVol ?? "--");
+            const flash = priceFlash[m.streamKey];
+
+            return (
+              <Link
+                key={m.symbol}
+                href={m.href}
+                className={`p-5 rounded-xl border border-gray-800 bg-card hover:bg-muted/40 transition-all space-y-3 group `}
               >
-                {i < steps.length - 1 && (
-                  <div className="hidden md:block absolute top-10 -right-2.5 w-5 h-px z-10 bg-slate-700" />
-                )}
-
-                <div className="flex items-start gap-4 mb-4">
-                  <div className="w-9 h-9 rounded-md flex items-center justify-center shrink-0 bg-slate-800 text-slate-400 border border-slate-700">
-                    {step.icon}
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="font-semibold text-sm text-foreground flex items-center gap-1.5">
+                      {m.symbol}
+                      <ArrowUpRight className="h-3.5 w-3.5 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground" />
+                    </div>
+                    <div className="text-xs text-muted-foreground">{m.name}</div>
                   </div>
-                  <span className="text-xs font-mono font-medium mt-2.5 text-slate-600">
-                    {step.num}
+                  <span
+                    className={`text-xs font-mono font-medium px-2 py-0.5 rounded transition-colors ${
+                      isPositive
+                        ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
+                        : "text-rose-400 bg-rose-500/10 border border-rose-500/20"
+                    }`}
+                  >
+                    {isPositive ? "+" : ""}
+                    {change?.toFixed(2)}%
                   </span>
                 </div>
 
-                <h3 className="font-semibold text-sm mb-2 text-slate-50">
-                  {step.title}
-                </h3>
-                <p className="text-xs leading-relaxed text-slate-500">
-                  {step.desc}
-                </p>
-              </div>
-            ))}
-          </div>
+                <div>
+                  <div
+                    className={`text-xl font-bold font-mono transition-colors duration-300 ${
+                      flash === "up"
+                        ? "text-emerald-400"
+                        : flash === "down"
+                        ? "text-rose-400"
+                        : "text-foreground"
+                    }`}
+                  >
+                    {price}
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
+                    <span>24h Vol: {vol}</span>
+                    
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
-          <div className="text-center mt-8">
+      {/* ── Bottom Call To Action ───────────────────────────────────────────── */}
+      <section className="py-16 border-t border-border bg-muted/20 text-center">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 space-y-4">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+            Start trading on the next-generation crypto exchange.
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            Sign up in seconds, deposit crypto or fiat, and access 400+ markets with industry-leading execution speed.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/in/auth/signup"
-              className="inline-flex items-center gap-2 px-6 py-2.5 rounded-md text-sm font-semibold bg-slate-50 text-slate-950"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-md bg-foreground text-background font-medium text-xs hover:opacity-90 transition-opacity"
             >
-              Create Free Account →
+              <span>Create Free Account</span>
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
+            <Link
+              href="/in/auth/login"
+              className="px-4 py-2.5 rounded-md border border-border bg-card hover:bg-muted font-medium text-xs text-foreground transition-colors"
+            >
+              Sign In
             </Link>
           </div>
         </div>
       </section>
 
-      <footer className="px-6 py-10 mt-10 border-t border-slate-800">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-8">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded flex items-center justify-center text-xs font-bold bg-slate-50 text-slate-950">
-                CX
-              </div>
-              <span className="font-semibold text-sm text-slate-50">
-                CryptoExchange
-              </span>
-            </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-6 text-white">
-              <p className="">About Us</p>
-              <p className="">Contact</p>
-            </div>
+      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-border bg-background py-8 text-xs text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <span
+              className={`flex h-2 w-2 rounded-full ${
+                isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
+              }`}
+            />
+            <span>
+              Binance Market Stream: {isConnected ? "Operational" : "Connecting..."}
+            </span>
           </div>
 
-          <div className="flex flex-col md:flex-row items-center justify-between gap-3 pt-6 text-xs border-t border-slate-800 text-slate-600">
-            <p>© 2026 CryptoExchange Inc. All rights reserved.</p>
+          <div className="flex flex-wrap items-center justify-center gap-5">
+            <Link href="/in/spot/btcusdt" className="hover:text-foreground transition-colors">
+              Spot Trading
+            </Link>
+            <Link href="/in/market/btcusdt" className="hover:text-foreground transition-colors">
+              Markets
+            </Link>
+            <Link href="/in/wallet" className="hover:text-foreground transition-colors">
+              Wallet
+            </Link>
+            <Link href="/in/auth/login" className="hover:text-foreground transition-colors">
+              Sign In
+            </Link>
+            <Link href="/in/auth/signup" className="hover:text-foreground transition-colors">
+              Sign Up
+            </Link>
+          </div>
+
+          <div>
+            &copy; {new Date().getFullYear()} CryptoExchange Inc. All rights reserved.
           </div>
         </div>
       </footer>
     </div>
   );
-};
-
-export default page;
+}
