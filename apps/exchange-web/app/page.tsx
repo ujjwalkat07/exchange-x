@@ -1,7 +1,25 @@
 "use client";
 
 import Link from "next/link";
-
+import {
+  Activity,
+  ArrowRight,
+  BarChart3,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Code2,
+  Copy,
+  Cpu,
+  Database,
+  ExternalLink,
+  Layers,
+  LayoutDashboard,
+  ShieldCheck,
+  Terminal,
+  Zap,
+} from "lucide-react";
 const page = () => {
   const steps = [
     {
@@ -130,6 +148,84 @@ const page = () => {
               </span>
             ))}
           </div>
+        </div>
+      </section>
+
+      <section id="dashboard-preview" className="pb-20 max-w-6xl mx-auto px-4 sm:px-6 w-full">
+        {/* Application Window Frame */}
+        <div className="rounded-xl border border-border bg-card shadow-lg overflow-hidden">
+          {/* Window Header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-border" />
+              <span className="h-3 w-3 rounded-full bg-border" />
+              <span className="h-3 w-3 rounded-full bg-border" />
+              <span className="ml-2 text-xs font-medium text-muted-foreground hidden sm:inline-block">
+                asi-telemetry.io/analytics · Live Dashboard Statistics
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+
+              <Link
+                href="/dashboard"
+                className="text-xs text-foreground font-medium hover:underline flex items-center gap-1"
+              >
+                <span>Open in App</span>
+                <ExternalLink className="h-3 w-3" />
+              </Link>
+            </div>
+          </div>
+
+          {/* Screenshot Image Container: dynamically switches between Light and Dark mode */}
+          <div className="relative w-full aspect-[1917/1008] bg-muted/20">
+            {/* Light Mode Dashboard Screenshot */}
+            <div className="absolute inset-0 block dark:hidden">
+              <Image
+                src="/image.png"
+                alt="ASI Telemetry Dashboard Overview - Tool Monitoring (Light Theme)"
+                fill
+                priority
+                className="object-cover object-top"
+                sizes="(max-width: 1200px) 100vw, 1200px"
+              />
+            </div>
+            {/* Dark Mode Dashboard Screenshot */}
+            <div className="absolute inset-0 hidden dark:block">
+              <Image
+                src="/image.png"
+                alt="ASI Telemetry Dashboard Overview - LLM Monitoring (Dark Theme)"
+                fill
+                priority
+                className="object-cover object-top"
+                sizes="(max-width: 1200px) 100vw, 1200px"
+              />
+            </div>
+          </div>
+
+          {/* Highlights Footer Strip */}
+          {/* <div className="grid grid-cols-2 sm:grid-cols-4 border-t border-border divide-y sm:divide-y-0 sm:divide-x divide-border bg-muted/10 text-left">
+            <div className="p-4 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">Traces & Runs Tracked</div>
+              <div className="text-xl font-bold font-mono text-foreground">157</div>
+              <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">ClickHouse Synced</div>
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">Total Tokens</div>
+              <div className="text-xl font-bold font-mono text-foreground">63,325</div>
+              <div className="text-[11px] text-muted-foreground">Prompt: 45k · Completion: 18k</div>
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">Recorded Cost</div>
+              <div className="text-xl font-bold font-mono text-foreground">$0.0399</div>
+              <div className="text-[11px] text-muted-foreground">Multi-Model Inference</div>
+            </div>
+            <div className="p-4 space-y-1">
+              <div className="text-xs text-muted-foreground font-medium">Success Rate</div>
+              <div className="text-xl font-bold font-mono text-foreground">99.4%</div>
+              <div className="text-[11px] text-muted-foreground">156 Successful / 1 Errored</div>
+            </div>
+          </div> */}
         </div>
       </section>
 
