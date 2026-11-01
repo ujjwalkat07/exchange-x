@@ -2,23 +2,7 @@
 
 import Link from "next/link";
 import {
-  Activity,
-  ArrowRight,
-  BarChart3,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  Clock,
-  Code2,
-  Copy,
-  Cpu,
-  Database,
-  ExternalLink,
-  Layers,
-  LayoutDashboard,
-  ShieldCheck,
-  Terminal,
-  Zap,
+  ExternalLink
 } from "lucide-react";
 const page = () => {
   const steps = [
