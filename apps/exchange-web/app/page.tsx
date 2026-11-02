@@ -250,67 +250,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-foreground selection:text-background">
-      {/* ── Live Market Ticker Tape ─────────────────────────────────────────── */}
-      <div className="border-b border-border/80 bg-muted/20 backdrop-blur-md overflow-x-auto no-scrollbar py-2 px-4 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between gap-6 text-xs whitespace-nowrap">
-          <div className="flex items-center gap-2 text-muted-foreground font-mono">
-            <span
-              className={`h-2 w-2 rounded-full ${
-                isConnected ? "bg-emerald-500 animate-pulse" : "bg-amber-500"
-              }`}
-            />
-            <span className="text-[11px] font-semibold text-foreground">
-              {isConnected ? "BINANCE WS LIVE" : "CONNECTING..."}
-            </span>
-            <span className="text-zinc-600">|</span>
-          </div>
-
-          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-0.5">
-            {MARKETS.map((m) => {
-              const t = tickers[m.streamKey];
-              const price = t ? formatPrice(t.c) : formatPrice(m.defaultPrice);
-              const change = t ? parseFloat(t.P) : (m.defaultChange ?? 0);
-              const isPositive = change >= 0;
-              const flash = priceFlash[m.streamKey];
-
-              return (
-                <Link
-                  key={m.streamKey}
-                  href={m.href}
-                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
-                >
-                  <span className="font-semibold text-foreground font-mono">{m.symbol}</span>
-                  <span
-                    className={`font-mono transition-colors duration-300 ${
-                      flash === "up"
-                        ? "text-emerald-400 font-bold"
-                        : flash === "down"
-                        ? "text-rose-400 font-bold"
-                        : "text-zinc-200"
-                    }`}
-                  >
-                    {price}
-                  </span>
-                  <span
-                    className={`font-mono text-[11px] px-1.5 py-0.2 rounded font-medium ${
-                      isPositive
-                        ? "text-emerald-400 bg-emerald-500/10"
-                        : "text-rose-400 bg-rose-500/10"
-                    }`}
-                  >
-                    {isPositive ? "+" : ""}
-                    {change.toFixed(2)}%
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="hidden lg:flex items-center gap-2 text-muted-foreground text-[11px] font-mono">
-            <span>Updates: {tickCount.toLocaleString()}</span>
-          </div>
-        </div>
-      </div>
 
       {/* ── Hero Section ────────────────────────────────────────────────────── */}
       <section id="overview" className="pt-16 pb-10 sm:pt-20 sm:pb-14 max-w-5xl mx-auto px-4 sm:px-6 text-center">
