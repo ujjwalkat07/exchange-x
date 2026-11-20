@@ -33,9 +33,6 @@ interface MarketConfig {
   streamKey: string;
   name: string;
   href: string;
-  defaultPrice?: number;
-  defaultChange?: number;
-  defaultVol?: string;
 }
 
 const MARKETS: MarketConfig[] = [
@@ -43,73 +40,49 @@ const MARKETS: MarketConfig[] = [
     symbol: "BTC/USDT",
     streamKey: "BTCUSDT",
     name: "Bitcoin",
-    defaultPrice: 77974.5,
-    defaultChange: 0.68,
-    defaultVol: "$3.72B",
     href: "/in/spot/btcusdt",
   },
   {
     symbol: "ETH/USDT",
     streamKey: "ETHUSDT",
     name: "Ethereum",
-    defaultPrice: 2842.15,
-    defaultChange: 1.38,
-    defaultVol: "$1.82B",
     href: "/in/spot/ethusdt",
   },
   {
     symbol: "SOL/USDT",
     streamKey: "SOLUSDT",
     name: "Solana",
-    defaultPrice: 184.6,
-    defaultChange: 3.42,
-    defaultVol: "$942.15M",
     href: "/in/spot/solusdt",
   },
   {
     symbol: "BNB/USDT",
     streamKey: "BNBUSDT",
     name: "BNB Chain",
-    defaultPrice: 612.4,
-    defaultChange: 0.45,
-    defaultVol: "$510.30M",
     href: "/in/spot/bnbusdt",
   },
   {
     symbol: "XRP/USDT",
     streamKey: "XRPUSDT",
     name: "Ripple",
-    defaultPrice: 0.584,
-    defaultChange: 2.15,
-    defaultVol: "$420.50M",
     href: "/in/spot/xrpusdt",
   },
   {
     symbol: "SAND/USDT",
     streamKey: "SANDUSDT",
-    name: "SAND",
-    defaultPrice: 0.584,
-    defaultChange: 2.15,
-    defaultVol: "$420.50M",
-    href: "/in/spot/xrpusdt",
+    name: "The Sandbox",
+    href: "/in/spot/sandusdt",
   },
   {
     symbol: "FET/USDT",
     streamKey: "FETUSDT",
-    name: "Fetch AI",
-    defaultPrice: 0.584,
-    defaultChange: 2.15,
-    defaultVol: "$420.50M",
-    href: "/in/spot/xrpusdt",
+    name: "Artificial Superintelligence",
+    href: "/in/spot/fetusdt",
   },
   {
     symbol: "BAT/USDT",
     streamKey: "BATUSDT",
     name: "Basic Attention Token",
-    defaultPrice: 0.584,
-    defaultChange: 2.15,
-    defaultVol: "$420.50M",
-    href: "/in/spot/xrpusdt",
+    href: "/in/spot/batusdt",
   },
 ];
 
@@ -220,12 +193,12 @@ export default function LandingPage() {
   }, []);
 
   const btcTicker = tickers["BTCUSDT"];
-  const btcPrice = btcTicker ? parseFloat(btcTicker.c) : 77974.5;
-  const btcChangePercent = btcTicker ? parseFloat(btcTicker.P) : 0.68;
-  const btcChangeAmount = btcTicker ? parseFloat(btcTicker.p) : 522.6;
-  const btcVol = btcTicker ? formatVol(btcTicker.q) : "$3.72B";
-  const btcHigh = btcTicker ? formatPrice(btcTicker.h) : "$78,231.30";
-  const btcLow = btcTicker ? formatPrice(btcTicker.l) : "$77,333.40";
+  const btcPrice = btcTicker ? parseFloat(btcTicker.c) : null;
+  const btcChangePercent = btcTicker ? parseFloat(btcTicker.P) : null;
+  const btcChangeAmount = btcTicker ? parseFloat(btcTicker.p) : null;
+  const btcVol = btcTicker ? formatVol(btcTicker.q) : "--";
+  const btcHigh = btcTicker ? formatPrice(btcTicker.h) : "--";
+  const btcLow = btcTicker ? formatPrice(btcTicker.l) : "--";
 
   const steps = [
     {
@@ -315,7 +288,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-3">
               <span className="inline-flex items-center gap-1.5 text-xs text-emerald-500 font-mono">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Binance WS: {formatPrice(btcPrice)}</span>
+                <span>Binance WS: {btcPrice !== null ? formatPrice(btcPrice) : "Live"}</span>
               </span>
               <Link
                 href="/in/spot/btcusdt"
@@ -367,10 +340,10 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {MARKETS.map((m) => {
             const ticker = tickers[m.streamKey];
-            const price = ticker ? formatPrice(ticker.c) : formatPrice(m.defaultPrice);
-            const change = ticker ? parseFloat(ticker.P) : (m.defaultChange ?? 0);
-            const isPositive = change >= 0;
-            const vol = ticker ? formatVol(ticker.q) : (m.defaultVol ?? "--");
+            const price = ticker ? formatPrice(ticker.c) : "--";
+            const change = ticker ? parseFloat(ticker.P) : null;
+            const isPositive = change !== null ? change >= 0 : true;
+            const vol = ticker ? formatVol(ticker.q) : "--";
             const flash = priceFlash[m.streamKey];
 
             return (
@@ -389,13 +362,14 @@ export default function LandingPage() {
                   </div>
                   <span
                     className={`text-xs font-mono font-medium px-2 py-0.5 rounded transition-colors ${
-                      isPositive
+                      change === null
+                        ? "text-muted-foreground bg-muted/40"
+                        : isPositive
                         ? "text-emerald-400 bg-emerald-500/10 border border-emerald-500/20"
                         : "text-rose-400 bg-rose-500/10 border border-rose-500/20"
                     }`}
                   >
-                    {isPositive ? "+" : ""}
-                    {change?.toFixed(2)}%
+                    {change !== null ? `${isPositive ? "+" : ""}${change.toFixed(2)}%` : "--"}
                   </span>
                 </div>
 
@@ -413,7 +387,6 @@ export default function LandingPage() {
                   </div>
                   <div className="text-[11px] text-muted-foreground mt-1 flex items-center justify-between">
                     <span>24h Vol: {vol}</span>
-                    
                   </div>
                 </div>
               </Link>

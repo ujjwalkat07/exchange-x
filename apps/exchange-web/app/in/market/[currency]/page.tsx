@@ -1,281 +1,446 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import {
+  ArrowUpRight,
+  Search,
+  TrendingDown,
+  TrendingUp,
+  X,
+} from "lucide-react";
 
-interface TickerData {
-  s: string; // Symbol
-  c: string; // Last price
-  p: string; // Price change
-  P: string; // Price change percent
-  h: string; // High price
-  l: string; // Low price
-  v: string; // Volume
-  q: string; // Total traded base asset volume
-  o: string;
+interface MiniTicker {
+  s: string; // Symbol, e.g. "BTCUSDT"
+  c: string; // Current price
+  o: string; // Open price
+  h: string; // High
+  l: string; // Low
+  v: string; // Base volume
+  q: string; // Quote volume (USDT)
 }
 
-interface TickerProps {
-  token: string;
-}
 declare global {
   interface Window {
     TradingView: any;
   }
 }
-interface MarkPrice {
-  s: string;
-  p: number;
-  r: string;
-  T: number;
-}
-export default function MarketPage() {
-  const priceMapRef = useRef<Map<string, MarkPrice>>(new Map());
-  const [selected, setSelected] = useState("BTCUSDT");
-  const [sortedPrices, setSortedPrices] = useState<MarkPrice[]>([]);
-  const [connected, setConnected] = useState(false);
-  const [ticker, setTicker] = useState<TickerData | null>(null);
-  const [search, setSearch] = useState("");
-  const chartRef = useRef<HTMLDivElement>(null);
-  const widgetRef = useRef<any>(null);
-  const token = useParams();
-  // TradingView widget
-  useEffect(() => {
-    const script = document.createElement("script");
-    script.src = "https://s3.tradingview.com/tv.js";
-    script.async = true;
-    script.onload = () => initWidget(selected);
-    document.head.appendChild(script);
-    return () => {
-      document.head.removeChild(script);
-    };
-  }, []);
 
-  const initWidget = (symbol: string) => {
-    if (!chartRef.current || !window.TradingView) return;
-    chartRef.current.innerHTML = "";
-    widgetRef.current = new window.TradingView.widget({
-      container_id: "tv-chart",
-      symbol: `BINANCE:${symbol}`,
-      interval: "15",
-      theme: "dark",
-      style: "3", // line chart
-      locale: "en",
-      toolbar_bg: "#0a0a0f",
-      enable_publishing: false,
-      hide_side_toolbar: true,
-      hide_top_toolbar: false,
-      save_image: false,
-      backgroundColor: "#0a0a0f",
-      gridColor: "rgba(255,255,255,0.03)",
-      width: "100%",
-      height: "100%",
-      autosize: true,
-      studies: [],
-      overrides: {
-        "paneProperties.background": "#0a0a0f",
-        "paneProperties.backgroundType": "solid",
-        "mainSeriesProperties.lineStyle.color": "#00d4aa",
-        "mainSeriesProperties.lineStyle.linewidth": 2,
-      },
-    });
+const formatPrice = (val?: string | number): string => {
+  if (val === undefined || val === null || val === "") return "--";
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return "--";
+  if (num >= 1000) {
+    return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  if (num >= 1) {
+    return "$" + num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 4 });
+  }
+  return "$" + num.toFixed(4);
+};
+
+const formatVol = (val?: string | number): string => {
+  if (!val) return "--";
+  const num = typeof val === "string" ? parseFloat(val) : val;
+  if (isNaN(num)) return "--";
+  if (num >= 1e9) {
+    return "$" + (num / 1e9).toFixed(2) + "B";
+  }
+  if (num >= 1e6) {
+    return "$" + (num / 1e6).toFixed(2) + "M";
+  }
+  if (num >= 1e3) {
+    return "$" + (num / 1e3).toFixed(2) + "K";
+  }
+  return "$" + num.toFixed(2);
+};
+
+const getChangePercent = (ticker?: MiniTicker): number | null => {
+  if (!ticker) return null;
+  const current = parseFloat(ticker.c);
+  const open = parseFloat(ticker.o);
+  if (!open || isNaN(current) || isNaN(open)) return null;
+  return ((current - open) / open) * 100;
+};
+
+export default function MarketPage() {
+  const params = useParams();
+  const routeSymbol = (params?.currency as string)?.toUpperCase() || "BTCUSDT";
+
+  const [selectedSymbol, setSelectedSymbol] = React.useState<string>(routeSymbol);
+  // Pure live WebSocket data — no dummy or fallback numbers
+  const [tickersMap, setTickersMap] = React.useState<Map<string, MiniTicker>>(new Map());
+
+  const [search, setSearch] = React.useState("");
+  const [filter, setFilter] = React.useState<"ALL" | "GAINERS" | "LOSERS">("ALL");
+  const [priceFlash, setPriceFlash] = React.useState<"up" | "down" | null>(null);
+
+  const prevPriceRef = React.useRef<number | null>(null);
+  const chartContainerRef = React.useRef<HTMLDivElement>(null);
+
+  // Sync route param into selected symbol
+  React.useEffect(() => {
+    if (routeSymbol && routeSymbol !== selectedSymbol) {
+      setSelectedSymbol(routeSymbol);
+    }
+  }, [routeSymbol]);
+
+  // Handle asset switch
+  const handleSelectSymbol = (sym: string) => {
+    const clean = sym.toUpperCase();
+    setSelectedSymbol(clean);
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `/in/market/${clean.toLowerCase()}`);
+    }
   };
 
-  // WebSocket for live prices
-  useEffect(() => {
-    const ws = new window.WebSocket(
-      "wss://fstream.binance.com/market/stream?streams=!markPrice@arr",
-    );
+  // ── Binance MiniTicker Live WebSocket Feed ─────────────────────────────────
+  React.useEffect(() => {
+    let ws: WebSocket | null = null;
+    let isMounted = true;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 
-    ws.onopen = () => setConnected(true);
-
-    ws.onmessage = (event: MessageEvent) => {
+    const connect = () => {
       try {
-        const data = JSON.parse(event.data);
-        const prices = data?.data;
-        if (!prices.length) return;
+        ws = new WebSocket("wss://fstream.binance.com/market/stream?streams=!miniTicker@arr");
 
-        prices.forEach((item: MarkPrice) => {
-          priceMapRef.current.set(item.s, item);
-        });
+        ws.onmessage = (event: MessageEvent) => {
+          if (!isMounted) return;
+          try {
+            const data = JSON.parse(event.data);
+            const list: MiniTicker[] = data?.data;
+            if (!Array.isArray(list)) return;
 
-        setSortedPrices(Array.from(priceMapRef.current.values()));
-      } catch (err) {
-        console.error("Parse error:", err);
+            setTickersMap((prevMap) => {
+              const updated = new Map(prevMap);
+              list.forEach((item) => {
+                if (item.s && item.s.endsWith("USDT") && !item.s.includes("_")) {
+                  updated.set(item.s, item);
+                }
+              });
+              return updated;
+            });
+          } catch (e) {
+            console.error("WS error:", e);
+          }
+        };
+
+        ws.onclose = () => {
+          if (!isMounted) return;
+          reconnectTimer = setTimeout(connect, 3000);
+        };
+      } catch (e) {
+        console.warn("WS connect failed:", e);
       }
     };
 
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => {
-      setConnected(false);
-      console.warn("Binance WebSocket closed");
-    };
+    connect();
 
-    return () => ws.close();
+    return () => {
+      isMounted = false;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      if (ws) ws.close();
+    };
   }, []);
 
-  useEffect(() => {
-    const ws = new window.WebSocket(
-      `wss://fstream.binance.com/market/stream?streams=${String(token.currency).toLowerCase()}@ticker`,
-    );
-    ws.onmessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-        const prices = data?.data;
+  // ── Active Token Price Flash Effect ────────────────────────────────────────
+  const activeTicker = tickersMap.get(selectedSymbol);
 
-        if (!prices) return;
-        setTicker(prices);
+  React.useEffect(() => {
+    if (!activeTicker) return;
+    const current = parseFloat(activeTicker.c);
+    if (prevPriceRef.current !== null && current !== prevPriceRef.current) {
+      const dir = current > prevPriceRef.current ? "up" : "down";
+      setPriceFlash(dir);
+      const timer = setTimeout(() => setPriceFlash(null), 500);
+      prevPriceRef.current = current;
+      return () => clearTimeout(timer);
+    }
+    prevPriceRef.current = current;
+  }, [activeTicker?.c]);
+
+  // ── TradingView Chart Embed ────────────────────────────────────────────────
+  React.useEffect(() => {
+    const scriptId = "tv-widget-script";
+    let isMounted = true;
+
+    const initChart = () => {
+      if (!chartContainerRef.current || !window.TradingView) return;
+
+      chartContainerRef.current.innerHTML = "";
+      const containerId = "tv_chart_main";
+      const div = document.createElement("div");
+      div.id = containerId;
+      div.className = "w-full h-full";
+      chartContainerRef.current.appendChild(div);
+
+      try {
+        new window.TradingView.widget({
+          autosize: true,
+          symbol: `BINANCE:${selectedSymbol}`,
+          interval: "15",
+          timezone: "Etc/UTC",
+          theme: "dark",
+          style: "1", // Professional Candlesticks
+          locale: "en",
+          enable_publishing: false,
+          allow_symbol_change: false,
+          container_id: containerId,
+          backgroundColor: "#09090b",
+          gridColor: "rgba(255, 255, 255, 0.04)",
+          hide_side_toolbar: false,
+          hide_top_toolbar: false,
+          studies: ["MASimple@tv-basicstudies"],
+          overrides: {
+            "paneProperties.background": "#09090b",
+            "paneProperties.backgroundType": "solid",
+            "mainSeriesProperties.candleStyle.upColor": "#10b981",
+            "mainSeriesProperties.candleStyle.downColor": "#f43f5e",
+            "mainSeriesProperties.candleStyle.borderUpColor": "#10b981",
+            "mainSeriesProperties.candleStyle.borderDownColor": "#f43f5e",
+            "mainSeriesProperties.candleStyle.wickUpColor": "#10b981",
+            "mainSeriesProperties.candleStyle.wickDownColor": "#f43f5e",
+          },
+        });
       } catch (err) {
-        console.error("Parse error:", err);
+        console.warn("TV init failed:", err);
       }
     };
 
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-    ws.onclose = () => {
-      console.warn("Binance WebSocket closed");
-    };
+    if (window.TradingView) {
+      initChart();
+    } else if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = "https://s3.tradingview.com/tv.js";
+      script.async = true;
+      script.onload = () => {
+        if (isMounted) initChart();
+      };
+      document.head.appendChild(script);
+    }
 
-    return () => ws.close();
-  }, [token.currency]);
-  const filtered = search
-    ? sortedPrices.filter((item) =>
-        item.s.toLowerCase().includes(search.toLowerCase()),
-      )
-    : sortedPrices;
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedSymbol]);
+
+  // ── Filtered & Sorted Market List ──────────────────────────────────────────
+  const marketList = React.useMemo(() => {
+    const list = Array.from(tickersMap.values()).filter((item) =>
+      item.s.endsWith("USDT")
+    );
+
+    // Sort by 24h quote volume descending by default (Binance / Delta style)
+    list.sort((a, b) => parseFloat(b.q || "0") - parseFloat(a.q || "0"));
+
+    return list.filter((item) => {
+      const chg = getChangePercent(item);
+      if (filter === "GAINERS" && (chg === null || chg < 0)) return false;
+      if (filter === "LOSERS" && (chg === null || chg >= 0)) return false;
+      if (search.trim()) {
+        const q = search.toLowerCase().trim();
+        return item.s.toLowerCase().includes(q);
+      }
+      return true;
+    });
+  }, [tickersMap, search, filter]);
+
+  const changePercent = getChangePercent(activeTicker);
+  const isPositive = changePercent !== null ? changePercent >= 0 : true;
+
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white flex flex-col font-mono">
-      <div className="flex flex-1 max-h-145 overflow-y-auto">
-        {/* Sidebar — asset list */}
-        <aside className="w-64 border-r border-white/5 flex flex-col overflow-y-auto shrink-0">
-          <div className="px-3 pt-4 pb-2">
-            <p className="text-[9px] uppercase tracking-[0.2em] text-white/20 mb-3">
-              Markets
-            </p>
-            <div className="mb-3">
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-background text-foreground font-sans overflow-hidden">
+      {/* ── Top Professional Ticker Header (Binance / Delta style) ──────────── */}
+      <div className="border-b border-border bg-card/60 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0 overflow-x-auto no-scrollbar">
+        {/* Left: Coin Name & Live Price */}
+        <div className="flex items-center gap-6 shrink-0">
+          <div className="flex items-center gap-3">
+            <h1 className="text-base font-bold font-mono tracking-tight text-foreground">
+              {selectedSymbol.replace("USDT", "")}
+              <span className="text-muted-foreground font-normal">/USDT</span>
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3 border-l border-border pl-4">
+            <span
+              className={`text-xl sm:text-2xl font-bold font-mono transition-colors duration-200 ${
+                priceFlash === "up"
+                  ? "text-emerald-400"
+                  : priceFlash === "down"
+                  ? "text-rose-400"
+                  : "text-foreground"
+              }`}
+            >
+              {activeTicker ? formatPrice(activeTicker.c) : "--"}
+            </span>
+
+            {changePercent !== null ? (
+              <span
+                className={`inline-flex items-center gap-0.5 text-xs font-mono font-medium px-2 py-0.5 rounded ${
+                  isPositive
+                    ? "text-emerald-400 bg-emerald-500/10"
+                    : "text-rose-400 bg-rose-500/10"
+                }`}
+              >
+                {isPositive ? (
+                  <TrendingUp className="h-3 w-3" />
+                ) : (
+                  <TrendingDown className="h-3 w-3" />
+                )}
+                <span>
+                  {isPositive ? "+" : ""}
+                  {changePercent.toFixed(2)}%
+                </span>
+              </span>
+            ) : (
+              <span className="text-xs font-mono text-muted-foreground">--</span>
+            )}
+          </div>
+        </div>
+
+        {/* Center / Right: 24h Stats Row */}
+        <div className="flex items-center gap-6 sm:gap-8 shrink-0 text-xs">
+          <div className="hidden md:flex flex-col">
+            <span className="text-[10px] text-muted-foreground font-medium">24h High</span>
+            <span className="font-mono text-foreground font-medium">
+              {activeTicker ? formatPrice(activeTicker.h) : "--"}
+            </span>
+          </div>
+
+          <div className="hidden md:flex flex-col">
+            <span className="text-[10px] text-muted-foreground font-medium">24h Low</span>
+            <span className="font-mono text-foreground font-medium">
+              {activeTicker ? formatPrice(activeTicker.l) : "--"}
+            </span>
+          </div>
+
+          <div className="flex flex-col">
+            <span className="text-[10px] text-muted-foreground font-medium">24h Volume (USDT)</span>
+            <span className="font-mono text-foreground font-semibold">
+              {activeTicker ? formatVol(activeTicker.q) : "--"}
+            </span>
+          </div>
+
+          {/* Direct "Trade Spot" CTA Button */}
+          <Link
+            href={`/in/spot/${selectedSymbol.toLowerCase()}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity"
+          >
+            <span>Trade Spot</span>
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </Link>
+        </div>
+      </div>
+
+      {/* ── Main Two-Column Layout ─────────────────────────────────────────── */}
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
+        {/* ── Left: Watchlist Sidebar ──────────────────────────────────────── */}
+        <aside className="w-full md:w-72 lg:w-80 border-r border-border bg-card/30 flex flex-col shrink-0 overflow-hidden">
+          {/* Search & Simple Filters */}
+          <div className="p-2.5 border-b border-border space-y-2 bg-card/40 shrink-0">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search Token"
+                placeholder="Search coin..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-gray-900 border border-slate-700 text-slate-200 text-xs rounded px-3 py-1.5 placeholder-slate-600 outline-none focus:border-slate-500 transition-colors"
+                className="w-full bg-muted/40 border border-border text-foreground text-xs rounded-md pl-8 pr-7 py-1.5 placeholder:text-muted-foreground outline-none focus:border-foreground/40 transition-colors font-mono"
               />
+              {search && (
+                <button
+                  onClick={() => setSearch("")}
+                  className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground cursor-pointer"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Clean filter tabs */}
+            <div className="flex items-center gap-1 text-[11px] font-medium">
+              {(["ALL", "GAINERS", "LOSERS"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setFilter(tab)}
+                  className={`px-2.5 py-0.5 rounded transition-colors cursor-pointer ${
+                    filter === tab
+                      ? "bg-muted text-foreground font-semibold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {tab === "ALL" ? "All" : tab === "GAINERS" ? "Gainers" : "Losers"}
+                </button>
+              ))}
             </div>
           </div>
-          <table className="w-full text-xs">
-            <thead className="sticky top-0 z-10 bg-black">
-              <tr className="text-slate-500">
-                <th className="px-3 py-1.5 text-left font-medium min-w-[6rem]">
-                  Asset
-                </th>
-                <th className="px-3 py-1.5 text-right font-medium min-w-[6rem]">
-                  Mark Price
-                </th>
-              </tr>
-            </thead>
 
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={3}
-                    className="px-3 py-6 text-center text-slate-600"
+          {/* Table Header */}
+          <div className="grid grid-cols-12 px-3 py-1.5 text-[10px] font-mono text-muted-foreground border-b border-border bg-muted/10 shrink-0 select-none">
+            <span className="col-span-5">Pair</span>
+            <span className="col-span-4 text-right">Price</span>
+            <span className="col-span-3 text-right">24h Chg</span>
+          </div>
+
+          {/* Scrollable Coins List */}
+          <div className="flex-1 overflow-y-auto divide-y divide-border/20">
+            {marketList.length === 0 ? (
+              <div className="p-6 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span>Connecting to live feed...</span>
+              </div>
+            ) : (
+              marketList.map((item) => {
+                const isSelected = item.s === selectedSymbol;
+                const chg = getChangePercent(item);
+                const pos = chg !== null ? chg >= 0 : true;
+
+                return (
+                  <button
+                    key={item.s}
+                    onClick={() => handleSelectSymbol(item.s)}
+                    className={`w-full text-left px-3 py-2 grid grid-cols-12 items-center text-xs font-mono transition-colors cursor-pointer ${
+                      isSelected
+                        ? "bg-muted/70 text-foreground font-semibold border-l-2 border-foreground"
+                        : "hover:bg-muted/30 text-zinc-300 border-l-2 border-transparent"
+                    }`}
                   >
-                    {connected ? "No results" : "Waiting for data…"}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((item) => {
-                  return (
-                    <tr
-                      key={item.s}
-                      className="border-b border-slate-900 hover:bg-slate-900/50 transition-colors"
+                    <div className="col-span-5 truncate">
+                      <span className="font-semibold text-foreground">
+                        {item.s.replace("USDT", "")}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        /USDT
+                      </span>
+                    </div>
+
+                    <div className="col-span-4 text-right font-medium text-foreground">
+                      {formatPrice(item.c)}
+                    </div>
+
+                    <div
+                      className={`col-span-3 text-right font-medium text-[11px] ${
+                        chg === null
+                          ? "text-muted-foreground"
+                          : pos
+                          ? "text-emerald-400"
+                          : "text-rose-400"
+                      }`}
                     >
-                      <td className="px-3 py-2 text-slate-50 font-medium">
-                        <Link href={`/in/spot/${item.s}`}>{item.s}</Link>
-                      </td>
-                      <td
-                        className={`px-3 py-2 text-right font-mono text-slate-300`}
-                      >
-                        <Link href={`/in/spot/${item.s}`}>{item.p}</Link>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                      {chg !== null ? `${pos ? "+" : ""}${chg.toFixed(2)}%` : "--"}
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
         </aside>
 
-        {/* Main content */}
-        <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Ticker bar */}
-          <div className="border-b border-white/5 px-6 py-4 flex items-center gap-8">
-            <div className="font-semibold text-gray-100 text-2xl">
-              {ticker?.s}
-            </div>
-            <div className="text-white text-bold">$ {ticker?.c}</div>
-            <div
-              className={
-                Number(ticker?.P) >= 0
-                  ? "text-green-400 flex flex-col"
-                  : "text-red-400 flex flex-col"
-              }
-            >
-              <span className="text-gray-600 text-xs">24h Chg</span>
-              <span className="text-sm">
-                {ticker?.p}
-                {"   "}
-                {ticker?.P}
-              </span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-600 text-xs">Open Price</span>
-              <span className="text-sm text-white">{ticker?.o}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-600 text-xs">24h High</span>
-              <span className="text-sm text-white">{ticker?.h}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-600 text-xs">24h Low</span>
-              <span className="text-sm text-white">{ticker?.l}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-600 text-xs">24h Vol(BTC)</span>
-              <span className="text-sm text-white">{ticker?.v}</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="text-gray-600 text-xs">24h Vol(USDT)</span>
-              <span className="text-sm text-white">{ticker?.q}</span>
-            </div>
-          </div>
-
-          {/* Chart */}
-          <div className="flex-1 relative">
-            <div id="tv-chart" ref={chartRef} className="absolute inset-0" />
-          </div>
-
-          {/* Bottom price grid */}
-          <div className="border-t border-white/5 grid grid-cols-5 divide-x divide-white/5">
-            {/* {FEATURED.map((sym) => {
-                            const d = prices.get(sym);
-                            const pos = Number(d?.P ?? 0) >= 0;
-                            return (
-                                <button
-                                    key={sym}
-                                    onClick={() => changeSymbol(sym)}
-                                    className={`px-4 py-3 text-left hover:bg-white/3 transition-colors ${selected === sym ? "bg-[#00d4aa]/5" : ""}`}
-                                >
-                                    <p className="text-[9px] uppercase tracking-widest text-white/25 mb-1">{sym.replace("USDT", "")}</p>
-                                    <p className="text-sm text-white/80">${d ? fmt(d.c) : "—"}</p>
-                                    <p className={`text-[10px] mt-0.5 ${pos ? "text-[#00d4aa]" : "text-red-400"}`}>
-                                        {pos ? "+" : ""}{Number(d?.P ?? 0).toFixed(2)}%
-                                    </p>
-                                </button>
-                            );
-                        })} */}
-          </div>
+        {/* ── Right: Clean Full-Height Candlestick Chart ───────────────────── */}
+        <main className="flex-1 min-w-0 bg-[#09090b] relative">
+          <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
         </main>
       </div>
     </div>
