@@ -11,8 +11,8 @@ import { IoClose } from "react-icons/io5";
 import { RiLoader2Fill } from "react-icons/ri";
 
 interface MarkPrice {
-  s: string; // Symbol
-  p: string; // Mark price
+  s: string;
+  p: string;
 }
 
 const OpenOrder = () => {
@@ -29,7 +29,6 @@ const OpenOrder = () => {
   );
   const dispatch = useDispatch();
 
-  // Load open positions
   useEffect(() => {
     const fetchOpenPositions = async () => {
       try {
@@ -47,7 +46,6 @@ const OpenOrder = () => {
     fetchOpenPositions();
   }, [isChanging, isSocketChanging]);
 
-  // Connect to Binance Futures Mark Price stream to compute live PnL
   useEffect(() => {
     const ws = new WebSocket(
       "wss://fstream.binance.com/market/stream?streams=!markPrice@arr",
@@ -66,7 +64,6 @@ const OpenOrder = () => {
 
         setLivePrices((prev) => ({ ...prev, ...priceMap }));
       } catch (err) {
-        // Silent error to prevent console spam
       }
     };
 
@@ -75,7 +72,6 @@ const OpenOrder = () => {
     };
   }, []);
 
-  // Cancel/Close Order handler
   const handleCancelOrder = async (orderId: string) => {
     try {
       setCancellingId(orderId);
@@ -129,7 +125,6 @@ const OpenOrder = () => {
             const entryPrice = Number(order.entryPrice);
             const quantity = Number(order.orderQuantity);
 
-            // Calculate Unrealized PnL
             let unrealizedPnL = 0;
             if (order.orderSide === "BUY") {
               unrealizedPnL = (currentPrice - entryPrice) * quantity;
@@ -153,14 +148,12 @@ const OpenOrder = () => {
                 key={order.orderId}
                 className="border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors items-center"
               >
-                {/* Symbol Tag */}
                 <td className="py-3.5 pl-3">
                   <span className="bg-blue-600/10 text-blue-400 border border-blue-600/30 px-2 py-0.5 rounded text-[10px] font-bold font-sans">
                     {symbolUpper}
                   </span>
                 </td>
 
-                {/* Side */}
                 <td className="py-3.5 font-semibold">
                   <span
                     className={
@@ -173,10 +166,8 @@ const OpenOrder = () => {
                   </span>
                 </td>
 
-                {/* Quantity */}
                 <td className="py-3.5">{quantity.toFixed(4)}</td>
 
-                {/* Avg Fill Price */}
                 <td className="py-3.5">
                   $
                   {entryPrice.toLocaleString(undefined, {
@@ -185,7 +176,6 @@ const OpenOrder = () => {
                   })}
                 </td>
 
-                {/* Last Price */}
                 <td className="py-3.5">
                   $
                   {currentPrice.toLocaleString(undefined, {
@@ -194,7 +184,6 @@ const OpenOrder = () => {
                   })}
                 </td>
 
-                {/* Unrealized PnL */}
                 <td className={`py-3.5 font-bold ${pnlColorClass}`}>
                   {pnlPrefix}
                   {unrealizedPnL.toFixed(2)}{" "}
@@ -203,25 +192,21 @@ const OpenOrder = () => {
                   </span>
                 </td>
 
-                {/* Unrealized PnL % */}
                 <td className={`py-3.5 font-bold ${pnlColorClass}`}>
                   {pnlPrefix}
                   {pnlPercent.toFixed(2)}%
                 </td>
 
-                {/* Trade Value */}
                 <td className="py-3.5">
                   ${tradeValue.toFixed(2)}{" "}
                   <span className="text-[9px] text-slate-500">USD</span>
                 </td>
 
-                {/* Market Value */}
                 <td className="py-3.5">
                   ${marketValue.toFixed(2)}{" "}
                   <span className="text-[9px] text-slate-500">USD</span>
                 </td>
 
-                {/* Close Action Button */}
                 <td className="py-3.5 pr-3 text-right">
                   <button
                     onClick={() => handleCancelOrder(order.orderId)}

@@ -16,7 +16,7 @@ export const options = {
     { duration: "20s", target: 500 },
   ],
   thresholds: {
-    http_req_duration: ["p(95)<1000"], // p95 < 1s under load
+    http_req_duration: ["p(95)<1000"],
   },
 };
 
@@ -47,14 +47,13 @@ const BASE_URL = __ENV.BASE_URL;
 export default function () {
   const orderSide = randomSide();
 
-  // 🔁 Route based on order side
   const url =
     orderSide === "BUY"
       ? `${BASE_URL}/api/order/buyorder`
       : `${BASE_URL}/api/order/sellOrder`;
 
   const payload = JSON.stringify({
-    currencyPair: randomPair(), // 🔑 Kafka partition key
+    currencyPair: randomPair(),
     orderSide,
     orderType: "Market",
     entryPrice: randomPrice(),
@@ -76,6 +75,5 @@ export default function () {
       r.status === 200 || r.status === 201 || r.status === 202,
   });
 
-  // simulate user think time
   sleep(0.1);
 }

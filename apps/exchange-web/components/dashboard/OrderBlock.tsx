@@ -10,7 +10,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RiLoader2Fill } from "react-icons/ri";
 
 const OrderBlock = () => {
-  const [state, setState] = useState("BUY"); // "BUY" or "SELL"
+  const [state, setState] = useState("BUY");
   const [orderType, setOrderType] = useState<"Market" | "Limit">("Market");
   const [amount, setAmount] = useState<number>(0);
   const [qty, setQty] = useState<number>(0);
@@ -29,7 +29,6 @@ const OrderBlock = () => {
   const usdtBalance = Number(walletData?.asset1 || 0).toFixed(3);
   const tokenBalance = Number(walletData?.asset2 || 0).toFixed(3);
 
-  // Subscribe to live ticker to pre-populate limit price
   useEffect(() => {
     const symbolUpper = String(params.currency || "BTCUSDT").toUpperCase();
     const ws = new WebSocket(
@@ -45,7 +44,6 @@ const OrderBlock = () => {
           setLivePrice(price);
         }
       } catch (err) {
-        // Silent error
       }
     };
 
@@ -54,7 +52,6 @@ const OrderBlock = () => {
     };
   }, [params.currency]);
 
-  // Sync limit price with live price on switching tab if limit price is not set
   useEffect(() => {
     if (orderType === "Limit" && limitPrice === 0 && livePrice > 0) {
       setLimitPrice(livePrice);
@@ -134,7 +131,6 @@ const OrderBlock = () => {
           <h1 className="text-sm font-semibold">Exchange / Spot</h1>
           <hr className="border-slate-800 mt-1" />
 
-          {/* Buy / Sell selector */}
           <div className="text-white text-xs flex justify-around items-center border border-slate-800 mt-5 rounded-sm overflow-hidden">
             <div className="bg-emerald-500/10 text-emerald-400 border-r border-slate-800 py-3 flex-1 text-center font-bold">
               BUY
@@ -150,7 +146,6 @@ const OrderBlock = () => {
             </button>
           </div>
 
-          {/* Market / Limit selector */}
           <div className="flex gap-4 mt-3 border-b border-slate-900 pb-2">
             <button
               onClick={() => setOrderType("Market")}
@@ -175,7 +170,6 @@ const OrderBlock = () => {
           </div>
 
           <div className="flex flex-col gap-2 mt-2">
-            {/* Price Field */}
             {orderType === "Market" ? (
               <div className="bg-slate-900/40 border border-slate-800 flex gap-1 justify-between items-center rounded-sm text-xs text-slate-500 mt-3 p-3">
                 <p className="font-semibold">Price</p>
@@ -196,7 +190,6 @@ const OrderBlock = () => {
               </div>
             )}
 
-            {/* Amount (Total USDT) Field */}
             <div className="border border-slate-800 bg-slate-900/20 flex justify-between items-center rounded-sm text-xs focus-within:border focus-within:border-emerald-400 mt-2">
               <input
                 type="number"
@@ -242,7 +235,6 @@ const OrderBlock = () => {
           <h1 className="text-sm font-semibold">Exchange / Spot</h1>
           <hr className="border-slate-800 mt-1" />
 
-          {/* Buy / Sell selector */}
           <div className="text-white text-xs flex justify-around items-center border border-slate-800 mt-5 rounded-sm overflow-hidden">
             <button
               onClick={() => {
@@ -258,7 +250,6 @@ const OrderBlock = () => {
             </div>
           </div>
 
-          {/* Market / Limit selector */}
           <div className="flex gap-4 mt-3 border-b border-slate-900 pb-2">
             <button
               onClick={() => setOrderType("Market")}
@@ -283,7 +274,6 @@ const OrderBlock = () => {
           </div>
 
           <div className="flex flex-col gap-2 mt-2">
-            {/* Price Field */}
             {orderType === "Market" ? (
               <div className="bg-slate-900/40 border border-slate-800 flex gap-1 justify-between items-center rounded-sm text-xs text-slate-500 mt-3 p-3">
                 <p className="font-semibold">Price</p>
@@ -304,7 +294,6 @@ const OrderBlock = () => {
               </div>
             )}
 
-            {/* Quantity Field */}
             <div className="border border-slate-800 bg-slate-900/20 flex justify-between items-center rounded-sm text-xs focus-within:border focus-within:border-red-400 mt-2">
               <input
                 type="number"

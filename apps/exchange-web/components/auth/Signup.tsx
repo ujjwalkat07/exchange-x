@@ -5,150 +5,229 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { api } from "@/lib/axios";
-import { IoMdLogIn } from "react-icons/io";
-import { CiLogin } from "react-icons/ci";
-import { RiLoader2Fill } from "react-icons/ri";
-import { MdEmail } from "react-icons/md";
-import { MdOutlinePassword } from "react-icons/md";
-import { MdDriveFileRenameOutline } from "react-icons/md";
+import { useAuth } from "@/context/AuthContext";
+import {
+  Mail,
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  ShieldCheck,
+  ArrowRight,
+  Check,
+} from "lucide-react";
 
 const Signup = () => {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setfullName] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
 
-  const SignupHandler = async () => {
-    if (!email || !password || !fullName) {
-      setError("Please fill in all fields.");
+  const router = useRouter();
+  const { login } = useAuth();
+
+  const handleSignup = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+
+    if (!fullName.trim() || !email.trim() || !password.trim()) {
+      setError("Please fill in all required fields.");
       return;
     }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     setError("");
     setLoading(true);
+
     try {
-      await api.post("/api/auth/signup", { email, password, fullName });
-      router.push("/in/spot/btcusdt");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
+      await api.post("/api/auth/signup", {
+        fullName: fullName.trim(),
+        email: email.trim(),
+        password,
+      });
+
+      try {
+        await login(email.trim(), password);
+        router.push("/in/spot/btcusdt");
+      } catch {
+        router.push("/in/auth/login?registered=true");
+      }
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
         setError(
-          error.response?.data?.message || "Login failed. Please try again.",
+          err.response?.data?.message ||
+            "Registration failed. An account with this email may already exist.",
         );
       } else {
-        setError("Something went wrong. Please try again.");
+        setError("Network error. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const isPasswordValid = password.length >= 6;
+
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-black text-slate-50">
-      <div className="w-full max-w-sm rounded-xl p-8 bg-gray-950 border border-slate-800">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 bg-slate-50 text-blue-950">
-            <IoMdLogIn className="text-3xl" />
-          </div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-50">
-            Welcome!
-          </h1>
-          <p className="text-sm mt-1 text-slate-400">Create your account</p>
+    <div className="w-full max-w-[420px] rounded-2xl border border-white/[0.08] bg-[#0c0e12]/90 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/60">
+      <div className="grid grid-cols-2 p-1 mb-6 rounded-lg bg-zinc-900/80 border border-zinc-800 text-xs font-medium">
+        <Link
+          href="/in/auth/login"
+          className="py-2 text-center rounded-md text-zinc-400 hover:text-white transition-colors"
+        >
+          Log In
+        </Link>
+        <div className="py-2 text-center rounded-md bg-zinc-800 text-white font-semibold shadow-sm">
+          Register
         </div>
-
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-400">
-              Full Name
-            </label>
-            <div className="flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors bg-slate-900 border border-slate-800">
-              <MdDriveFileRenameOutline className="text-gray-500" />
-              <input
-                type="fullName"
-                placeholder="john doe"
-                value={fullName}
-                onChange={(e) => setfullName(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600 text-slate-50"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-400">
-              Email address
-            </label>
-            <div className="flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors bg-slate-900 border border-slate-800">
-              <MdEmail className="text-gray-500" />
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600 text-slate-50"
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-slate-400">
-                Password
-              </label>
-            </div>
-            <div className="flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors bg-slate-900 border border-slate-800">
-              <MdOutlinePassword />
-
-              <input
-                type="password"
-                placeholder="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600 text-slate-50"
-                autoComplete="current-password"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 rounded-md px-3 py-2.5 text-xs bg-[hsl(0_72.2%_50.6%/0.1)] border border-[hsl(0_72.2%_50.6%/0.3)] text-[hsl(0_72.2%_65%)]">
-              <RiLoader2Fill />
-              {error}
-            </div>
-          )}
-
-          <button
-            onClick={SignupHandler}
-            disabled={loading}
-            className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-semibold transition-opacity mt-1 disabled:opacity-60 disabled:cursor-not-allowed bg-slate-50 text-blue-950"
-          >
-            {loading ? (
-              <>
-                <RiLoader2Fill />
-                Signing in…
-              </>
-            ) : (
-              <>
-                <CiLogin className="text-2xl" />
-                Sign up
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px bg-slate-800" />
-          <span className="text-xs text-slate-600">or</span>
-          <div className="flex-1 h-px bg-slate-800" />
-        </div>
-
-        <p className="text-center text-xs text-slate-500">
-          Already have an account?{" "}
-          <Link
-            href="/in/auth/login"
-            className="font-medium transition-colors text-slate-50"
-          >
-            Login now
-          </Link>
-        </p>
       </div>
+
+      <div className="mb-6 text-center">
+        <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3 bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 shadow-inner">
+          <span className="font-bold text-sm tracking-wider text-white">
+            CX
+          </span>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-white">
+          Create Account
+        </h1>
+
+      </div>
+
+      <form onSubmit={handleSignup} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            Full Name
+          </label>
+          <div className="relative flex items-center rounded-lg bg-zinc-900/60 border border-zinc-800 focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
+            <div className="pl-3.5 pr-2 text-zinc-500">
+              <User className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="e.g. Satoshi Nakamoto"
+              autoComplete="name"
+              required
+              className="w-full bg-transparent py-2.5 pr-3 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            Email address
+          </label>
+          <div className="relative flex items-center rounded-lg bg-zinc-900/60 border border-zinc-800 focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
+            <div className="pl-3.5 pr-2 text-zinc-500">
+              <Mail className="w-4 h-4" />
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              autoComplete="email"
+              required
+              className="w-full bg-transparent py-2.5 pr-3 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            Password
+          </label>
+          <div className="relative flex items-center rounded-lg bg-zinc-900/60 border border-zinc-800 focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
+            <div className="pl-3.5 pr-2 text-zinc-500">
+              <Lock className="w-4 h-4" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 6 characters"
+              autoComplete="new-password"
+              required
+              className="w-full bg-transparent py-2.5 pr-10 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
+            >
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+
+          <div className="mt-1.5 flex items-center gap-1.5 text-[11px]">
+            <div
+              className={`w-3.5 h-3.5 rounded-full flex items-center justify-center transition-colors ${
+                isPasswordValid
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "bg-zinc-800 text-zinc-600"
+              }`}
+            >
+              <Check className="w-2.5 h-2.5" />
+            </div>
+            <span
+              className={
+                isPasswordValid ? "text-emerald-400" : "text-zinc-500"
+              }
+            >
+              At least 6 characters
+            </span>
+          </div>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs leading-relaxed animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2.5 px-4 rounded-lg bg-white hover:scale-105 active:bg-emerald-600 text-black font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
+              <span>Creating account…</span>
+            </>
+          ) : (
+            <>
+              <span>Create Account</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
+          )}
+        </button>
+      </form>
+
+      <p className="mt-4 text-center text-xs text-zinc-400">
+        Already have an account?{" "}
+        <Link
+          href="/in/auth/login"
+          className="font-medium text-emerald-400 hover:text-emerald-300 transition-colors"
+        >
+          Sign in
+        </Link>
+      </p>
     </div>
   );
 };

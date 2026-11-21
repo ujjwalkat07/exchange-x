@@ -12,13 +12,13 @@ import {
 } from "lucide-react";
 
 interface MiniTicker {
-  s: string; // Symbol, e.g. "BTCUSDT"
-  c: string; // Current price
-  o: string; // Open price
-  h: string; // High
-  l: string; // Low
-  v: string; // Base volume
-  q: string; // Quote volume (USDT)
+  s: string;
+  c: string;
+  o: string;
+  h: string;
+  l: string;
+  v: string;
+  q: string;
 }
 
 declare global {
@@ -69,7 +69,6 @@ export default function MarketPage() {
   const routeSymbol = (params?.currency as string)?.toUpperCase() || "BTCUSDT";
 
   const [selectedSymbol, setSelectedSymbol] = React.useState<string>(routeSymbol);
-  // Pure live WebSocket data — no dummy or fallback numbers
   const [tickersMap, setTickersMap] = React.useState<Map<string, MiniTicker>>(new Map());
 
   const [search, setSearch] = React.useState("");
@@ -79,14 +78,12 @@ export default function MarketPage() {
   const prevPriceRef = React.useRef<number | null>(null);
   const chartContainerRef = React.useRef<HTMLDivElement>(null);
 
-  // Sync route param into selected symbol
   React.useEffect(() => {
     if (routeSymbol && routeSymbol !== selectedSymbol) {
       setSelectedSymbol(routeSymbol);
     }
   }, [routeSymbol]);
 
-  // Handle asset switch
   const handleSelectSymbol = (sym: string) => {
     const clean = sym.toUpperCase();
     setSelectedSymbol(clean);
@@ -95,7 +92,6 @@ export default function MarketPage() {
     }
   };
 
-  // ── Binance MiniTicker Live WebSocket Feed ─────────────────────────────────
   React.useEffect(() => {
     let ws: WebSocket | null = null;
     let isMounted = true;
@@ -144,7 +140,6 @@ export default function MarketPage() {
     };
   }, []);
 
-  // ── Active Token Price Flash Effect ────────────────────────────────────────
   const activeTicker = tickersMap.get(selectedSymbol);
 
   React.useEffect(() => {
@@ -160,7 +155,6 @@ export default function MarketPage() {
     prevPriceRef.current = current;
   }, [activeTicker?.c]);
 
-  // ── TradingView Chart Embed ────────────────────────────────────────────────
   React.useEffect(() => {
     const scriptId = "tv-widget-script";
     let isMounted = true;
@@ -182,7 +176,7 @@ export default function MarketPage() {
           interval: "15",
           timezone: "Etc/UTC",
           theme: "dark",
-          style: "1", // Professional Candlesticks
+          style: "1",
           locale: "en",
           enable_publishing: false,
           allow_symbol_change: false,
@@ -226,13 +220,11 @@ export default function MarketPage() {
     };
   }, [selectedSymbol]);
 
-  // ── Filtered & Sorted Market List ──────────────────────────────────────────
   const marketList = React.useMemo(() => {
     const list = Array.from(tickersMap.values()).filter((item) =>
       item.s.endsWith("USDT")
     );
 
-    // Sort by 24h quote volume descending by default (Binance / Delta style)
     list.sort((a, b) => parseFloat(b.q || "0") - parseFloat(a.q || "0"));
 
     return list.filter((item) => {
@@ -252,9 +244,7 @@ export default function MarketPage() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)] bg-background text-foreground font-sans overflow-hidden">
-      {/* ── Top Professional Ticker Header (Binance / Delta style) ──────────── */}
       <div className="border-b border-border bg-card/60 px-4 py-2.5 flex items-center justify-between gap-4 shrink-0 overflow-x-auto no-scrollbar">
-        {/* Left: Coin Name & Live Price */}
         <div className="flex items-center gap-6 shrink-0">
           <div className="flex items-center gap-3">
             <h1 className="text-base font-bold font-mono tracking-tight text-foreground">
@@ -300,7 +290,6 @@ export default function MarketPage() {
           </div>
         </div>
 
-        {/* Center / Right: 24h Stats Row */}
         <div className="flex items-center gap-6 sm:gap-8 shrink-0 text-xs">
           <div className="hidden md:flex flex-col">
             <span className="text-[10px] text-muted-foreground font-medium">24h High</span>
@@ -323,7 +312,6 @@ export default function MarketPage() {
             </span>
           </div>
 
-          {/* Direct "Trade Spot" CTA Button */}
           <Link
             href={`/in/spot/${selectedSymbol.toLowerCase()}`}
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md bg-foreground text-background text-xs font-semibold hover:opacity-90 transition-opacity"
@@ -334,11 +322,8 @@ export default function MarketPage() {
         </div>
       </div>
 
-      {/* ── Main Two-Column Layout ─────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-        {/* ── Left: Watchlist Sidebar ──────────────────────────────────────── */}
         <aside className="w-full md:w-72 lg:w-80 border-r border-border bg-card/30 flex flex-col shrink-0 overflow-hidden">
-          {/* Search & Simple Filters */}
           <div className="p-2.5 border-b border-border space-y-2 bg-card/40 shrink-0">
             <div className="relative">
               <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
@@ -359,7 +344,6 @@ export default function MarketPage() {
               )}
             </div>
 
-            {/* Clean filter tabs */}
             <div className="flex items-center gap-1 text-[11px] font-medium">
               {(["ALL", "GAINERS", "LOSERS"] as const).map((tab) => (
                 <button
@@ -377,14 +361,12 @@ export default function MarketPage() {
             </div>
           </div>
 
-          {/* Table Header */}
           <div className="grid grid-cols-12 px-3 py-1.5 text-[10px] font-mono text-muted-foreground border-b border-border bg-muted/10 shrink-0 select-none">
             <span className="col-span-5">Pair</span>
             <span className="col-span-4 text-right">Price</span>
             <span className="col-span-3 text-right">24h Chg</span>
           </div>
 
-          {/* Scrollable Coins List */}
           <div className="flex-1 overflow-y-auto divide-y divide-border/20">
             {marketList.length === 0 ? (
               <div className="p-6 text-center text-xs text-muted-foreground flex flex-col items-center gap-2">
@@ -438,7 +420,6 @@ export default function MarketPage() {
           </div>
         </aside>
 
-        {/* ── Right: Clean Full-Height Candlestick Chart ───────────────────── */}
         <main className="flex-1 min-w-0 bg-[#09090b] relative">
           <div ref={chartContainerRef} className="absolute inset-0 w-full h-full" />
         </main>

@@ -48,7 +48,6 @@ export const orderMatchingEngine = async (message: IOrder) => {
 
     const bestPrice = Number(score);
 
-    // Price check - only restrict limit orders. Market orders match against any available price.
     if (orderType === "Limit") {
       if (
         (orderSide === "BUY" && bestPrice > Number(entryPrice)) ||

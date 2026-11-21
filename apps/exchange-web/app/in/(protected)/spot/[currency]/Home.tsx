@@ -75,7 +75,6 @@ export default function Home() {
       </div>
       <hr className="border-slate-800 mt-2" />
       <div className="flex flex-col lg:flex-row gap-4 mt-4 px-4">
-        {/* Left Sidebar on desktop, stacked below chart/order-form on mobile/tablet */}
         <div className="w-full lg:w-72 shrink-0 flex flex-col md:flex-row lg:flex-col gap-4 order-3 lg:order-1">
           <div className="flex-1 w-full">
             <Orderbook />
@@ -85,15 +84,12 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Main Content (Chart, Order Block, Tabs) */}
         <div className="flex-1 min-w-0 flex flex-col gap-4 order-1 lg:order-2">
           <div className="flex flex-col md:flex-row gap-4 items-stretch">
-            {/* Chart Container */}
             <div className="flex-grow min-w-0 h-[480px] bg-[#0b0e11] rounded-sm border border-slate-800">
               <TradingViewWidget symbol={String(params.currency)} />
             </div>
 
-            {/* Order Block Container */}
             <div className="w-full md:w-80 shrink-0">
               <OrderBlock />
             </div>

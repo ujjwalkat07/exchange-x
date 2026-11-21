@@ -19,7 +19,6 @@ const Holding = () => {
 
   const [livePrice, setLivePrice] = useState<number>(0);
 
-  // Subscribe to live price of the active token to show exact valuation
   useEffect(() => {
     const symbolUpper = String(params.currency || "BTCUSDT").toUpperCase();
     const ws = new WebSocket(
@@ -34,7 +33,6 @@ const Holding = () => {
           setLivePrice(Number(ticker.c));
         }
       } catch (err) {
-        // Silent error
       }
     };
 
@@ -46,7 +44,7 @@ const Holding = () => {
   const usdtBalance = Number(walletData?.asset1 || 0);
   const tokenBalance = Number(walletData?.asset2 || 0);
 
-  const tokenValuation = tokenBalance * (livePrice || 1); // fallback if ws not loaded
+  const tokenValuation = tokenBalance * (livePrice || 1);
   const totalValuation = usdtBalance + tokenValuation;
 
   const holdings = [
@@ -107,22 +105,18 @@ const Holding = () => {
                 key={item.asset}
                 className="border-b border-slate-900/60 hover:bg-slate-900/40 transition-colors"
               >
-                {/* Asset Tag */}
                 <td className="py-3.5 pl-3">
                   <span className="bg-emerald-600/10 text-emerald-400 border border-emerald-600/30 px-2 py-0.5 rounded text-[10px] font-bold font-sans">
                     {item.asset}
                   </span>
                 </td>
 
-                {/* Name */}
                 <td className="py-3.5 text-slate-400 font-sans">{item.name}</td>
 
-                {/* Balance */}
                 <td className="py-3.5 font-semibold">
                   {item.balance.toFixed(4)}
                 </td>
 
-                {/* Price */}
                 <td className="py-3.5">
                   $
                   {item.price.toLocaleString(undefined, {
@@ -131,7 +125,6 @@ const Holding = () => {
                   })}
                 </td>
 
-                {/* Valuation */}
                 <td className="py-3.5 pr-3 text-right font-semibold text-emerald-400">
                   $
                   {item.valuation.toLocaleString(undefined, {

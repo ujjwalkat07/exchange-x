@@ -50,10 +50,6 @@ const getWalletBalance = async (
 //   await Redis.getClient().del(`lock:wallet:${userId}:${asset}`);
 // };
 
-// Read the best available price from the order book in Redis
-// For BUY orders: best (lowest) ask from the SELL side
-// For SELL orders: best (highest) bid from the BUY side
-//Its only for market orders
 const getBestBookPrice = async (
   currencyPair: string,
   orderSide: "BUY" | "SELL",
@@ -63,8 +59,6 @@ const getBestBookPrice = async (
       ? `orderbook:${currencyPair}:SELL`
       : `orderbook:${currencyPair}:BUY`;
 
-  // For BUY: get lowest ask (index 0, ascending).
-  // For SELL: get highest bid (index 0, descending via REV).
   const best =
     orderSide === "BUY"
       ? await Redis.getClient().zRangeWithScores(oppositeBook, 0, 0)
@@ -123,7 +117,6 @@ const createOrder = async (
       price = Number(entryPrice);
       walletBalance = await getWalletBalance(userId.toString(), walletAsset);
     } else {
-      // Market order: use the best available price from our own order book
       const [bookPrice, balance] = await Promise.all([
         getBestBookPrice(currencyPairUpper, orderSide),
         getWalletBalance(userId.toString(), walletAsset),
@@ -187,14 +180,12 @@ const createOrder = async (
       orderQuantity: orderQuantity.toString(),
     };
 
-    // Push to Kafka
     Kafka.sendToConsumer(
       currencyPairUpper,
       "orders-detail",
       JSON.stringify(placedOrder),
     );
 
-    // Push to Redis
     const pipeline = Redis.getClient().multi();
     pipeline.hSet(`orderdetail:orderID:${uuid}`, placedOrder);
     pipeline.expire(`orderdetail:orderID:${uuid}`, 50000);

@@ -37,14 +37,12 @@ export const updateUserBalance = async (req: AuthRequest, res: Response) => {
       { new: true },
     );
 
-    // Clear Redis wallet caches
     const redis = Redis.getClient();
     await Promise.all([
       redis.del(`wallet:${userid}`),
       redis.del(`all:wallet:${userid}`),
     ]);
 
-    // Emit socket event to refresh frontend
     req.app.locals.emit("wallet", "Wallet Updated Successfully");
 
     res

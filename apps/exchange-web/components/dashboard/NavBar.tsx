@@ -30,7 +30,6 @@ const NavBar = () => {
           </div>
         </Link>
 
-        {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
           {navLinks.map((link) => (
             <Link
@@ -43,7 +42,6 @@ const NavBar = () => {
           ))}
         </nav>
 
-        {/* Right Action Buttons */}
         <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
             <div className="flex items-center gap-2.5">
@@ -75,7 +73,6 @@ const NavBar = () => {
           )}
         </div>
 
-        {/* Mobile menu trigger */}
         <button
           className="md:hidden flex flex-col justify-center items-center w-8 h-8 gap-1.5 shrink-0 text-foreground"
           onClick={() => setMenuOpen((prev) => !prev)}
@@ -93,7 +90,6 @@ const NavBar = () => {
         </button>
       </div>
 
-      {/* Mobile menu drawer */}
       <div
         className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out border-b border-border bg-background/98 ${
           menuOpen ? "max-h-96" : "max-h-0 border-transparent"

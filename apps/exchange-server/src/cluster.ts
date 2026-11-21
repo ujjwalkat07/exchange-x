@@ -21,6 +21,4 @@ if (cluster.isPrimary) {
     cluster.fork();
   });
 } else {
-  // ❗ NOTHING here
-  // server.ts will run inside workers
 }

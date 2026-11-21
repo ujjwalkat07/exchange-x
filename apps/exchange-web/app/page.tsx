@@ -18,14 +18,14 @@ import {
 } from "lucide-react";
 
 interface BinanceTickerData {
-  s: string; // Symbol (e.g., BTCUSDT)
-  c: string; // Last price
-  p: string; // 24h Price change
-  P: string; // 24h Price change percent
-  h: string; // 24h High
-  l: string; // 24h Low
-  v: string; // 24h Volume (base asset)
-  q: string; // 24h Volume (quote asset in USDT)
+  s: string;
+  c: string;
+  p: string;
+  P: string;
+  h: string;
+  l: string;
+  v: string;
+  q: string;
 }
 
 interface MarketConfig {
@@ -116,7 +116,6 @@ export default function LandingPage() {
   const [tickCount, setTickCount] = React.useState(0);
   const prevPriceMap = React.useRef<Map<string, number>>(new Map());
 
-  // ── Binance WebSocket Connection ──────────────────────────────────────────
   React.useEffect(() => {
     let ws: WebSocket | null = null;
     let reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
@@ -224,26 +223,21 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col font-sans selection:bg-foreground selection:text-background">
 
-      {/* ── Hero Section ────────────────────────────────────────────────────── */}
       <section id="overview" className="pt-16 pb-10 sm:pt-20 sm:pb-14 max-w-5xl mx-auto px-4 sm:px-6 text-center">
-        {/* Release / Status Tag */}
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-border bg-muted/30 text-xs text-muted-foreground mb-6">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           <span>Binance Real-Time Feeds · Sub-millisecond Execution · 400+ Pairs</span>
         </div>
 
-        {/* Headline */}
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.15] max-w-4xl mx-auto">
           The high-performance crypto exchange for professional traders.
         </h1>
 
-        {/* Subhead */}
         <p className="mt-5 max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground leading-relaxed">
           Trade Bitcoin, Ethereum, and 400+ crypto pairs with sub-microsecond matching,
           deep order books, and live Binance streaming price feeds.
         </p>
 
-        {/* CTA Actions */}
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/in/auth/signup"
@@ -271,10 +265,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Main Showcase with Real-Time Highlights Strip (HERO IMAGE) ─────── */}
       <section id="dashboard-preview" className="pb-16 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="rounded-xl border border-border bg-card shadow-2xl overflow-hidden">
-          {/* Window Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-border bg-muted/30">
             <div className="flex items-center gap-2">
               <span className="h-3 w-3 rounded-full bg-border" />
@@ -300,7 +292,6 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* Screenshot Image Container */}
           <div className="relative w-full aspect-[16/9] sm:aspect-[1917/1008] bg-zinc-950 overflow-hidden">
             <Image
               src="/image.png"
@@ -312,15 +303,13 @@ export default function LandingPage() {
             />
           </div>
 
-      
         </div>
       </section>
 
-      {/* ── Featured Markets with Live Binance WebSocket Prices ────────────── */}
       <section className="py-12 max-w-6xl mx-auto px-4 sm:px-6 w-full">
         <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
           <div>
-           
+
             <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
               Featured Markets
             </h2>
@@ -395,7 +384,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Bottom Call To Action ───────────────────────────────────────────── */}
       <section className="py-16 border-t border-border bg-muted/20 text-center">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
@@ -422,7 +410,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
       <footer className="border-t border-border bg-background py-8 text-xs text-muted-foreground">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">

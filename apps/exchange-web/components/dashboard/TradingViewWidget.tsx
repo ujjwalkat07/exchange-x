@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, memo } from "react";
 
-// ✅ Fix 1: Correct prop type - should be an object, not a primitive string
 type TradingViewWidgetProps = {
   symbol: string;
 };

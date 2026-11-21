@@ -22,13 +22,10 @@ const kafkaConsume = async () => {
   try {
     await kafkaConsumer.subscribeToTopic("orders-detail");
 
-    // Set up interval once, not per message
     setInterval(() => bulkInsertion(messages, emitToClients), 200);
 
     await kafkaConsumer.consume(async (message) => {
-      // Add message to the batch
       messages.push(message);
-      // Immediate bulk insertion if threshold reached
       if (messages.length >= 1000) {
         await bulkInsertion(messages, emitToClients);
       }

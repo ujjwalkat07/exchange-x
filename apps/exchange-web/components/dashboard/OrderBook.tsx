@@ -26,7 +26,6 @@ const Orderbook = () => {
   );
   const isChanging = useSelector((state: RootState) => state.socket.status);
 
-  // Fetch orderbook data
   useEffect(() => {
     if (!currency) return;
     const fetchData = async () => {
@@ -61,7 +60,6 @@ const Orderbook = () => {
     fetchData();
   }, [currency, isChanging, orderCount]);
 
-  // Live price WebSocket
   useEffect(() => {
     if (!currency) return;
     const symbol = currency.toLowerCase();
@@ -173,7 +171,6 @@ const Orderbook = () => {
             </tbody>
           </table>
 
-          {/* Live Price Display */}
           <div className="py-3 px-3 flex items-center gap-2 border-y border-slate-800/60">
             <span
               className={`font-bold text-2xl ${priceColorClass} transition-colors duration-300`}
@@ -188,7 +185,6 @@ const Orderbook = () => {
             </span>
           </div>
 
-          {/* sell order book */}
           <table className="w-full text-xs">
             <tbody>
               {sellData.length === 0 ? (

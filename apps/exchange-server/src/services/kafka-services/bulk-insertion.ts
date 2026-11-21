@@ -13,10 +13,8 @@ export const bulkInsertion = async (
   if (processing || messages.length === 0) return;
   processing = true;
   const batch = messages.splice(0, 1000);
-  //Start at index 0 and Remove 1000 elements and finally Return those 1000 elements
 
   try {
-    //insert placed orders into order collection
     await Order.insertMany(batch, { ordered: false });
     //instead of one by one operation i used bulk operation here
     const walletOpss = [];
@@ -27,7 +25,6 @@ export const bulkInsertion = async (
           `wallet:${order.user}`,
           order.currencyPair.toUpperCase().replace("USDT", ""),
         );
-        //create token wallet if not created yet
         if (tokenWallet === "NaN") {
           console.log("wallet created successfully");
           walletOpss.push({
@@ -71,9 +68,7 @@ export const bulkInsertion = async (
     await multi.exec();
 
     emit("wallet", "Wallet Update Successfully");
-    //here we execute the engine in parallel
 
-    // matching engine start here
     const tradeResults = await Promise.all(
       batch.map((order) => orderMatchingEngine(order)),
     );
@@ -82,7 +77,6 @@ export const bulkInsertion = async (
 
     const allTrades = tradeResults.flat();
 
-    // Query all involved orders in a single DB call
     const batchOrderIds = batch.map((o) => o.orderId);
     const tradeOrderIds = allTrades.flatMap((t) => [
       t.buyerOrderId,
@@ -101,13 +95,11 @@ export const bulkInsertion = async (
       ordersMap.set(order.orderId, order);
     }
 
-    // Track total traded quantity and amount per order
     const orderStats = new Map<
       string,
       { tradedQty: number; tradedAmount: number }
     >();
     for (const trade of allTrades) {
-      // Buyer
       if (!orderStats.has(trade.buyerOrderId)) {
         orderStats.set(trade.buyerOrderId, { tradedQty: 0, tradedAmount: 0 });
       }
@@ -115,7 +107,6 @@ export const bulkInsertion = async (
       buyerStat.tradedQty += trade.tradedQuantity;
       buyerStat.tradedAmount += trade.tradedQuantity * trade.executionPrice;
 
-      // Seller
       if (!orderStats.has(trade.sellerOrderId)) {
         orderStats.set(trade.sellerOrderId, { tradedQty: 0, tradedAmount: 0 });
       }
@@ -128,7 +119,6 @@ export const bulkInsertion = async (
     const tradeWalletOps = [];
     const ordermulti = Redis.getClient().multi();
 
-    // Now process all involved orders
     for (const orderId of involvedOrderIds) {
       const order = ordersMap.get(orderId);
       if (!order) continue;
@@ -144,9 +134,7 @@ export const bulkInsertion = async (
       const remainingQty = order.orderQuantity - totalTradedQty;
 
       if (order.orderType === "Market") {
-        // Market Order
         if (totalTradedQty > 0) {
-          // Partially or fully filled market order
           orderStatusOps.push({
             updateOne: {
               filter: { orderId },
@@ -159,7 +147,6 @@ export const bulkInsertion = async (
             },
           });
         } else {
-          // Unfilled market order
           orderStatusOps.push({
             updateOne: {
               filter: { orderId },
@@ -173,7 +160,6 @@ export const bulkInsertion = async (
           });
         }
 
-        // Refund unused balance for market order
         if (order.orderSide === "BUY") {
           const unusedAmount = order.orderAmount - totalTradedAmount;
           if (unusedAmount > 0) {
@@ -201,11 +187,9 @@ export const bulkInsertion = async (
           }
         }
 
-        // Remove from open orders cache
         ordermulti.sRem(`openOrders:userId:${order.user}`, orderId);
         ordermulti.del(`orderdetail:orderID:${orderId}`);
       } else {
-        // Limit Order
         if (totalTradedQty > 0) {
           orderStatusOps.push({
             updateOne: {
@@ -230,9 +214,7 @@ export const bulkInsertion = async (
       await Order.bulkWrite(orderStatusOps, { ordered: false });
     }
 
-    // Build standard trade wallet updates (crediting filled assets)
     for (const trade of allTrades) {
-      // Buyer gets the asset
       tradeWalletOps.push({
         updateOne: {
           filter: {
@@ -243,7 +225,6 @@ export const bulkInsertion = async (
           upsert: true,
         },
       });
-      // Seller gets USDT
       tradeWalletOps.push({
         updateOne: {
           filter: { user: trade.sellerUserId, asset: "USDT" },
@@ -258,7 +239,6 @@ export const bulkInsertion = async (
     if (tradeWalletOps.length > 0) {
       await Wallet.bulkWrite(tradeWalletOps, { ordered: false });
 
-      // Clear Redis wallet caches for all users involved in trades/refunds
       const uniqueUserIds = Array.from(
         new Set([
           ...batch.map((o) => o.user),
@@ -275,7 +255,6 @@ export const bulkInsertion = async (
 
     if (allTrades.length > 0) {
       emit("order", "Order Executed Successfully");
-      //push alltrades to orderHistory collection
       await orderHistory.insertMany(allTrades);
     }
     console.log(`Processed batch of ${batch.length} orders.`);

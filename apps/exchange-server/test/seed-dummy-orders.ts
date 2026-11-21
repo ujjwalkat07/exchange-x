@@ -58,7 +58,6 @@ const seed = async () => {
 
       const userId = user._id.toString();
 
-      // Setup wallets (USDT and BTC)
       console.log(`Setting up wallets for ${fullName}...`);
       await Wallet.findOneAndUpdate(
         { user: user._id, asset: "USDT" },
@@ -71,7 +70,6 @@ const seed = async () => {
         { upsert: true, new: true },
       );
 
-      // Seed Redis wallet cache
       const walletKey = `wallet:${userId}`;
       await redis.hSet(walletKey, {
         USDT: usdt.toString(),
@@ -79,7 +77,6 @@ const seed = async () => {
       });
       console.log(`Wallets configured in DB and Redis for ${fullName}.`);
 
-      // Clean up any existing open orders
       console.log(`Cleaning up previous open orders for ${fullName}...`);
       const oldOrders = await Order.find({
         user: user._id,
@@ -87,7 +84,6 @@ const seed = async () => {
       });
       const oldOrderIds = oldOrders.map((o) => o.orderId);
 
-      // Query open order IDs from Redis directly to handle cases where MongoDB was wiped but Redis is stale
       const redisOrderIds = await redis.sMembers(`openOrders:userId:${userId}`);
       const allOrderIds = Array.from(
         new Set([...oldOrderIds, ...redisOrderIds]),
@@ -101,13 +97,11 @@ const seed = async () => {
         }
         await pipeline.exec();
 
-        // Clean up the orderbooks for BTCUSDT from DB records
         for (const order of oldOrders) {
           const orderbookKey = `orderbook:BTCUSDT:${order.orderSide}`;
           const memberValue = `${userId}|${order.orderId}|${order.orderQuantity}`;
           const zRemResult = await redis.zRem(orderbookKey, memberValue);
           if (zRemResult === 0) {
-            // Fallback: search and destroy using prefix match
             for (const side of ["BUY", "SELL"]) {
               const bookKey = `orderbook:BTCUSDT:${side}`;
               const members = await redis.zRange(bookKey, 0, -1);
@@ -120,7 +114,6 @@ const seed = async () => {
           }
         }
 
-        // Also clean up any orphaned Redis orderbook items matching all retrieved IDs
         for (const side of ["BUY", "SELL"]) {
           const bookKey = `orderbook:BTCUSDT:${side}`;
           const members = await redis.zRange(bookKey, 0, -1);
@@ -138,7 +131,6 @@ const seed = async () => {
       }
     }
 
-    // 5. Get current price of BTCUSDT
     let currentPrice = 95000;
     try {
       currentPrice = await getLatestPrice("BTCUSDT");
@@ -149,7 +141,6 @@ const seed = async () => {
       );
     }
 
-    // 6. Define dummy orders for admin1 and admin2
     const user1 = await Auth.findOne({ email: "admin1@gmail.com" });
     const user2 = await Auth.findOne({ email: "admin2@gmail.com" });
 
@@ -158,7 +149,6 @@ const seed = async () => {
     }
 
     const orderTemplates = [
-      // Admin 1 Orders
       {
         user: user1,
         side: "BUY",
@@ -184,7 +174,6 @@ const seed = async () => {
         qty: 0.12,
       },
 
-      // Admin 2 Orders
       {
         user: user2,
         side: "BUY",
@@ -217,7 +206,6 @@ const seed = async () => {
       const amount = template.price * template.qty;
       const uId = template.user._id.toString();
 
-      // Write to DB
       await Order.create({
         user: template.user._id,
         orderId,
@@ -230,7 +218,6 @@ const seed = async () => {
         positionStatus: "Open",
       });
 
-      // Write detail to Redis
       const orderDetail = {
         user: uId,
         orderId,
@@ -250,7 +237,6 @@ const seed = async () => {
       pipeline.expire(`openOrders:userId:${uId}`, 50000);
       await pipeline.exec();
 
-      // Add to Orderbook Sorted Set
       const orderbookKey = `orderbook:BTCUSDT:${template.side}`;
       const memberValue = `${uId}|${orderId}|${template.qty}`;
       await redis.zAdd(orderbookKey, {
@@ -268,7 +254,6 @@ const seed = async () => {
     console.error("Seeding failed:", error);
   } finally {
     await mongoose.disconnect();
-    // Wait slightly to let Redis connection disconnect cleanly
     setTimeout(() => {
       process.exit(0);
     }, 1000);

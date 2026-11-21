@@ -2,173 +2,224 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import axios from "axios";
 import { useAuth } from "@/context/AuthContext";
-import { IoMdLogIn } from "react-icons/io";
-import { CiLogin } from "react-icons/ci";
-import { RiLoader2Fill } from "react-icons/ri";
-import { MdEmail } from "react-icons/md";
-import { MdOutlinePassword } from "react-icons/md";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+  CheckCircle2,
+  ShieldCheck,
+  ArrowRight,
+  Sparkles,
+} from "lucide-react";
 
 const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [demoFilled, setDemoFilled] = useState(false);
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const registeredSuccess = searchParams.get("registered") === "true";
+
   const { login } = useAuth();
 
-  const LoginHandler = async () => {
-    if (!email || !password) {
-      setError("Please fill in all fields.");
+  const handleLogin = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!email.trim() || !password.trim()) {
+      setError("Please fill in both your email and password.");
       return;
     }
+
     setError("");
     setLoading(true);
+
     try {
-      await login(email, password);
+      await login(email.trim(), password);
       router.push("/in/spot/btcusdt");
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
         setError(
-          error.response?.data?.message || "Login failed. Please try again.",
+          err.response?.data?.message ||
+            "Invalid credentials. Please verify your email and password.",
         );
       } else {
-        setError("Something went wrong. Please try again.");
+        setError("Network error. Please try again.");
       }
     } finally {
       setLoading(false);
     }
   };
 
+  const handleAutofillDemo = () => {
+    setEmail("admin@gmail.com");
+    setPassword("admin");
+    setError("");
+    setDemoFilled(true);
+    setTimeout(() => {
+      setDemoFilled(false);
+    }, 2500);
+  };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-black text-slate-50">
-      <div className="w-full max-w-sm rounded-xl p-8 bg-gray-950 border border-slate-800">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg mb-4 bg-slate-50 text-blue-950">
-            <IoMdLogIn className="text-3xl" />
+    <div className="w-full max-w-[420px] rounded-2xl border border-white/[0.08] bg-[#0c0e12]/90 backdrop-blur-xl p-6 sm:p-8 shadow-2xl shadow-black/60">
+      <div className="grid grid-cols-2 p-1 mb-6 rounded-lg bg-zinc-900/80 border border-zinc-800 text-xs font-medium">
+        <div className="py-2 text-center rounded-md bg-zinc-800 text-white font-semibold shadow-sm">
+          Log In
+        </div>
+        <Link
+          href="/in/auth/signup"
+          className="py-2 text-center rounded-md text-zinc-400 hover:text-white transition-colors"
+        >
+          Register
+        </Link>
+      </div>
+
+      <div className="mb-6 text-center">
+        <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl mb-3 bg-gradient-to-br from-zinc-800 to-zinc-900 border border-white/10 shadow-inner">
+          <span className="font-bold text-sm tracking-wider text-white">
+            CX
+          </span>
+        </div>
+        <h1 className="text-xl font-bold tracking-tight text-white">
+          Welcome back
+        </h1>
+
+      </div>
+
+      {registeredSuccess && (
+        <div className="mb-5 flex items-center gap-2.5 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs leading-relaxed animate-in fade-in slide-in-from-top-1">
+          <span>Account created successfully! Please sign in below.</span>
+        </div>
+      )}
+
+      <div className="mb-5 p-2.5 rounded-lg bg-zinc-900/80 border border-zinc-800/80 text-xs flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="truncate">
+            <span className="text-zinc-500 text-[11px] mr-1">Demo:</span>
+            <span className="font-mono text-zinc-300 text-[11px]">
+              admin@gmail.com
+            </span>
           </div>
-          <h1 className="text-xl font-semibold tracking-tight text-slate-50">
-            Welcome back
-          </h1>
-          <p className="text-sm mt-1 text-slate-400">Sign in to your account</p>
+        </div>
+        <button
+          type="button"
+          onClick={handleAutofillDemo}
+          className="shrink-0 px-2.5 py-1 rounded-md text-[11px] font-medium bg-zinc-800 hover:bg-zinc-700 text-white hover:text-emerald-300 border border-zinc-700/60 transition-colors flex items-center gap-1 cursor-pointer"
+        >
+          {demoFilled ? (
+            <>
+              <span>Filled!</span>
+            </>
+          ) : (
+            <>
+              <span>Autofill</span>
+            </>
+          )}
+        </button>
+      </div>
+
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <label className="block text-xs font-medium text-zinc-300 mb-1.5">
+            Email address
+          </label>
+          <div className="relative flex items-center rounded-lg bg-zinc-900/60 border border-zinc-800 focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
+            <div className="pl-3.5 pr-2 text-zinc-500">
+              <Mail className="w-4 h-4" />
+            </div>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="name@example.com"
+              autoComplete="email"
+              required
+              className="w-full bg-transparent py-2.5 pr-3 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none"
+            />
+          </div>
         </div>
 
-        {/* Demo Credentials Helper */}
-        <div className="mb-6 p-3 rounded-lg bg-slate-900 border border-slate-800 text-xs">
+        <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-slate-400 font-medium">Demo Account:</span>
+            <label className="text-xs font-medium text-zinc-300">
+              Password
+            </label>
+            <span className="text-[11px] text-zinc-500 hover:text-zinc-400 transition-colors cursor-pointer">
+              Forgot password?
+            </span>
+          </div>
+          <div className="relative flex items-center rounded-lg bg-zinc-900/60 border border-zinc-800 focus-within:border-emerald-500/50 focus-within:ring-1 focus-within:ring-emerald-500/20 transition-all">
+            <div className="pl-3.5 pr-2 text-zinc-500">
+              <Lock className="w-4 h-4" />
+            </div>
+            <input
+              type={showPassword ? "text" : "password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              autoComplete="current-password"
+              required
+              className="w-full bg-transparent py-2.5 pr-10 text-sm text-zinc-100 placeholder:text-zinc-600 outline-none"
+            />
             <button
-              onClick={() => {
-                setEmail("admin@gmail.com");
-                setPassword("admin");
-              }}
               type="button"
-              className="text-blue-400 hover:text-blue-300 font-semibold cursor-pointer transition-colors"
+              onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="absolute right-3 text-zinc-500 hover:text-zinc-300 transition-colors cursor-pointer"
             >
-              Fill Credentials
+              {showPassword ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
+              )}
             </button>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-slate-500 font-mono text-[11px]">
-            <div>
-              <span className="text-slate-600">Email:</span>{" "}
-              <span className="text-slate-300">admin@gmail.com</span>
-            </div>
-            <div>
-              <span className="text-slate-600">Password:</span>{" "}
-              <span className="text-slate-300">admin</span>
-            </div>
-          </div>
         </div>
 
-        <div className="flex flex-col gap-3">
-          <div>
-            <label className="block text-xs font-medium mb-1.5 text-slate-400">
-              Email address
-            </label>
-            <div className="flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors bg-slate-900 border border-slate-800">
-              <MdEmail className="text-gray-500" />
-              <input
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600 text-slate-50"
-                autoComplete="email"
-              />
-            </div>
+        {error && (
+          <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs leading-relaxed animate-in fade-in">
+            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>{error}</span>
           </div>
+        )}
 
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-medium text-slate-400">
-                Password
-              </label>
-              <Link
-                href="/in/auth/forgot-password"
-                className="text-xs transition-colors text-slate-500"
-              >
-                Forgot password?
-              </Link>
-            </div>
-            <div className="flex items-center gap-2.5 rounded-md px-3 py-2.5 transition-colors bg-slate-900 border border-slate-800">
-              <MdOutlinePassword />
-
-              <input
-                type="password"
-                placeholder="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-600 text-slate-50"
-                autoComplete="current-password"
-              />
-            </div>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2 rounded-md px-3 py-2.5 text-xs bg-[hsl(0_72.2%_50.6%/0.1)] border border-[hsl(0_72.2%_50.6%/0.3)] text-[hsl(0_72.2%_65%)]">
-              <RiLoader2Fill />
-              {error}
-            </div>
+        <button
+          type="submit"
+          disabled={loading}
+          className="w-full py-2.5 px-4 rounded-lg bg-white hover:scale-105 active:bg-emerald-600 text-black font-semibold text-sm transition-all duration-150 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin text-black" />
+              <span>Signing in…</span>
+            </>
+          ) : (
+            <>
+              <span>Sign In</span>
+              <ArrowRight className="w-4 h-4" />
+            </>
           )}
+        </button>
+      </form>
 
-          <button
-            onClick={LoginHandler}
-            disabled={loading}
-            className="cursor-pointer w-full flex items-center justify-center gap-2 rounded-md py-2.5 text-sm font-semibold transition-opacity mt-1 disabled:opacity-60 disabled:cursor-not-allowed bg-slate-50 text-blue-950"
-          >
-            {loading ? (
-              <>
-                <RiLoader2Fill />
-                Signing in…
-              </>
-            ) : (
-              <>
-                <CiLogin className="text-2xl" />
-                Log in
-              </>
-            )}
-          </button>
-        </div>
-
-        <div className="flex items-center gap-3 my-6">
-          <div className="flex-1 h-px bg-slate-800" />
-          <span className="text-xs text-slate-600">or</span>
-          <div className="flex-1 h-px bg-slate-800" />
-        </div>
-
-        <p className="text-center text-xs text-slate-500">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/in/auth/signup"
-            className="font-medium transition-colors text-slate-50"
-          >
-            Register now
-          </Link>
-        </p>
-      </div>
+      <p className="mt-4 text-center text-xs text-zinc-400">
+        Don&apos;t have an account?{" "}
+        <Link
+          href="/in/auth/signup"
+          className="font-medium text-white transition-colors"
+        >
+          Create one now
+        </Link>
+      </p>
     </div>
   );
 };

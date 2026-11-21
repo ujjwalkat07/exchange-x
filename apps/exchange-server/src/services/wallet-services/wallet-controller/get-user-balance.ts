@@ -26,7 +26,6 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
 
     const redisKey = `wallet:${userid}`;
 
-    // Get both balances in ONE redis call
     const [cached1, cached2] = await Redis.getClient().hmGet(redisKey, [
       asset1 as string,
       asset2 as string,
@@ -44,7 +43,6 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
         );
     }
 
-    // Fetch both wallets in ONE DB query
     const wallets = await Wallet.find(
       {
         $or: [
@@ -72,7 +70,6 @@ export const getUserBalance = async (req: AuthRequest, res: Response) => {
     const balance1 = wallet1.balance;
     const balance2 = wallet2?.balance ?? 0;
 
-    // Store both balances in ONE redis call
     await Redis.getClient().hSet(redisKey, {
       [asset1 as string]: Number(balance1),
       [asset2 as string]: Number(balance2),

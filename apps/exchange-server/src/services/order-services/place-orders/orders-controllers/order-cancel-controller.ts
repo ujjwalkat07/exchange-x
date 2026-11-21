@@ -25,7 +25,6 @@ export const cancelOrder = async (
       throw new ApiErrorHandling(HttpCodes.BAD_REQUEST, "orderId is required");
     }
 
-    // Find the order in MongoDB (can be resting Open or executed Filled position)
     const order = await Order.findOne({
       orderId,
       user: userId,
@@ -42,15 +41,12 @@ export const cancelOrder = async (
     const redis = Redis.getClient();
 
     if (order.positionStatus === "Open") {
-      // 1. Remove from Redis Orderbook Sorted Set
-      const bookSide = order.orderSide; // "BUY" or "SELL"
+      const bookSide = order.orderSide;
       const orderbookKey = `orderbook:${order.currencyPair}:${bookSide}`;
 
-      // The member value in sorted set is: `${userId}|${orderId}|${orderQuantity}`
       const memberValue = `${userId.toString()}|${orderId}|${order.orderQuantity}`;
       const zRemResult = await redis.zRem(orderbookKey, memberValue);
       if (zRemResult === 0) {
-        // Fallback: scan the sorted set for a member with matching userId and orderId
         const members = await redis.zRange(orderbookKey, 0, -1);
         const prefix = `${userId.toString()}|${orderId}|`;
         const matchedMember = members.find((m) => m.startsWith(prefix));
@@ -59,7 +55,6 @@ export const cancelOrder = async (
         }
       }
 
-      // 2. Refund User Wallet
       if (order.orderSide === "BUY") {
         // Refund remaining orderAmount in USDT
         const refundAmount = order.orderQuantity * order.entryPrice;
@@ -76,21 +71,17 @@ export const cancelOrder = async (
         );
       }
 
-      // Clear user's wallet cache in Redis
       await redis.del(`wallet:${userId}`);
 
-      // 3. Delete from user's open orders and order details in Redis, and invalidate closed orders cache
       await Promise.all([
         redis.sRem(`openOrders:userId:${userId}`, orderId),
         redis.del(`orderdetail:orderID:${orderId}`),
         redis.del(`closeOrders:userId:${userId}`),
       ]);
 
-      // 4. Update order status in DB to "Cancelled"
       order.positionStatus = "Cancelled";
       await order.save();
 
-      // 5. Emit socket events to notify frontend
       req.app.locals.emit("order", "Order Cancelled Successfully");
       req.app.locals.emit("wallet", "Wallet Updated Successfully");
 
@@ -136,10 +127,8 @@ export const cancelOrder = async (
         );
       }
 
-      // Clear user's wallet cache in Redis
       await redis.del(`wallet:${userId}`);
 
-      // 3. Delete from user's open orders and order details in Redis (as it is no longer open), and invalidate closed positions cache
       await Promise.all([
         redis.sRem(`openOrders:userId:${userId}`, orderId),
         redis.del(`orderdetail:orderID:${orderId}`),
@@ -150,7 +139,6 @@ export const cancelOrder = async (
       order.positionStatus = "Closed";
       await order.save();
 
-      // Emit socket events
       req.app.locals.emit("order", "Position Closed Successfully");
       req.app.locals.emit("wallet", "Wallet Updated Successfully");
 

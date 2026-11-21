@@ -52,14 +52,14 @@ export interface MarketSummaryProps {
 }
 
 export interface TickerData {
-  s: string; // Symbol
-  c: string; // Last price
-  p: string; // Price change
-  P: string; // Price change percent
-  h: string; // High price
-  l: string; // Low price
-  v: string; // Volume
-  q: string; // Total traded base asset volume
+  s: string;
+  c: string;
+  p: string;
+  P: string;
+  h: string;
+  l: string;
+  v: string;
+  q: string;
   o: string;
 }
 
